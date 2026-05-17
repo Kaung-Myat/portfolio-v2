@@ -1,0 +1,47 @@
+# Portfolio - Kaung Mrat Thu
+
+## About Me
+- Name: Kaung Mrat Thu 
+- Role: Flutter Developer & Computer Science Student
+- Company: Brainwave Data
+- Stack: Flutter, Java , Android (Kotlin), Dart
+- GitHub: https://github.com/Kaung-Myat
+- Facebook: https://www.facebook.com/Kkaungmratthuu/
+
+## Design Reference
+- Inspired by: https://htetaunglin-coder.dev/
+- Style: Dark minimalist, clean typography, subtle animations
+- Colors: Background #111111, accent #7c6af7, text #f5f5f5
+- Font: Inter (headings + body), JetBrains Mono (code labels)
+- Animations: Framer Motion, max 0.6s, ease-out only
+
+## Tech Stack
+- Next.js 14 App Router + TypeScript
+- Tailwind CSS
+- Framer Motion
+- shadcn/ui
+
+## Pages to Build
+1. Home - hero, selected projects, experience timeline, tech stack, testimonials, contact
+2. Projects - full list with tags and descriptions
+3. Blog - article list (can be MDX or static)
+4. About - bio, photo, GitHub contributions heatmap
+5. Resume - styled resume page + PDF download
+6. Ask AI - chat UI that answers questions about me using Claude API
+
+## Projects
+1. StayMM - map-based hostel finder (Flutter, Maps)
+2. g_tester - Flutter package for AI-powered unit tests (pub.dev)
+3. Student Registration System - university portal (Web)
+4. TikChord - TikTok chord detection app (Flutter, Firebase, Python)
+
+## Experience
+- Frontend & Mobile Developer @ Brainwave Data (Current)
+- Finance Officer @ WE RISE Community Project
+- CS Student @ UCSPyay - built Student Registration System
+
+## Key Rules
+- All data in /src/data/*.ts - never hardcode in components
+- Types in /src/types/index.ts
+- Mobile-first responsive design
+- Dark mode only (no toggle needed for now)
