@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminFirestore } from "@/src/lib/firebase-admin";
 
+// firebase-admin requires the Node.js runtime (not Edge); never cache writes.
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 // FCM web tokens are ~152-163 chars; 500 is a safe upper bound
 const TOKEN_MAX_LEN = 500;
 // Firestore document IDs cannot contain '/'

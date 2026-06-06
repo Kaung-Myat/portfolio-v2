@@ -17,8 +17,10 @@ jobs:
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           NOTIFY_DEPLOY_SECRET: ${{ secrets.NOTIFY_DEPLOY_SECRET }}
+          DEPLOY_ID: ${{ github.sha }}
         run: |
           curl --fail-with-body --retry 3 --retry-delay 20 --retry-all-errors \
             -X POST "${SITE_URL}/api/notify-deploy" \
             -H "Authorization: Bearer ${NOTIFY_DEPLOY_SECRET}" \
+            -H "X-Deploy-Id: ${DEPLOY_ID}" \
             --write-out "\nHTTP Status: %{http_code}\n"

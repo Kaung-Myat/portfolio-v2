@@ -35,6 +35,36 @@ async function registerServiceWorker(
   }
 }
 
+/**
+ * Wires up the foreground message handler. The SW's onBackgroundMessage only
+ * fires when the page is NOT focused; without this, a push that arrives while
+ * the tab/PWA is open is received by the SDK and silently dropped. Returns an
+ * unsubscribe function, or undefined if FCM is unsupported.
+ */
+async function setupForegroundHandler(
+  reg: ServiceWorkerRegistration | undefined,
+  getReg: () => ServiceWorkerRegistration | null
+): Promise<(() => void) | undefined> {
+  const [{ getFirebaseMessaging }, { onMessage }] = await Promise.all([
+    import("@/src/lib/firebase"),
+    import("firebase/messaging"),
+  ]);
+
+  const messaging = await getFirebaseMessaging();
+  if (!messaging) return undefined; // browser doesn't support FCM
+
+  return onMessage(messaging, (payload) => {
+    const title = payload.notification?.title ?? "New Post";
+    const body = payload.notification?.body ?? "";
+    const url = payload.data?.url ?? "/blog";
+    (reg ?? getReg())?.showNotification(title, {
+      body,
+      icon: "/icons/icon-192.png",
+      data: { url },
+    });
+  });
+}
+
 async function fetchAndSaveToken(
   registration: ServiceWorkerRegistration | undefined
 ): Promise<boolean> {
@@ -64,6 +94,17 @@ async function fetchAndSaveToken(
 export function useWebPush() {
   const [state, setState] = useState<WebPushState>("idle");
   const swReg = useRef<ServiceWorkerRegistration | null>(null);
+  const unsubForeground = useRef<(() => void) | null>(null);
+
+  // Attach the foreground onMessage listener at most once per session.
+  const ensureForegroundHandler = useCallback(
+    async (reg: ServiceWorkerRegistration | undefined) => {
+      if (unsubForeground.current) return;
+      unsubForeground.current =
+        (await setupForegroundHandler(reg, () => swReg.current)) ?? null;
+    },
+    []
+  );
 
   // Determine initial support/permission state, register the SW eagerly, and —
   // crucially — if permission was already granted (e.g. before the Firestore DB
@@ -91,6 +132,7 @@ export function useWebPush() {
       if (permission === "granted") {
         try {
           await fetchAndSaveToken(reg);
+          await ensureForegroundHandler(reg);
           if (!cancelled) setState("granted");
         } catch {
           // Keep state idle so the user can retry via the bell.
@@ -101,8 +143,10 @@ export function useWebPush() {
 
     return () => {
       cancelled = true;
+      unsubForeground.current?.();
+      unsubForeground.current = null;
     };
-  }, []);
+  }, [ensureForegroundHandler]);
 
   const subscribe = useCallback(async () => {
     if (!("Notification" in window)) {
@@ -123,11 +167,12 @@ export function useWebPush() {
       // A null messaging (unsupported browser) still counts as "done" — there is
       // nothing more the user can do, and permission was granted.
       await fetchAndSaveToken(reg);
+      await ensureForegroundHandler(reg);
       setState("granted");
     } catch {
       setState("denied");
     }
-  }, []);
+  }, [ensureForegroundHandler]);
 
   return { state, subscribe } as const;
 }

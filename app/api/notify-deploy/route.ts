@@ -1,8 +1,24 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import type { Firestore } from "firebase-admin/firestore";
 import { getAdminMessaging, getAdminFirestore } from "@/src/lib/firebase-admin";
 
+// firebase-admin needs the Node.js runtime (not Edge), and the response must
+// never be cached. maxDuration gives the batched FCM sends room to finish.
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
 const FCM_BATCH_LIMIT = 500;
+// Firestore commits a maximum of 500 writes per batch.
+const FIRESTORE_BATCH_LIMIT = 500;
+
+// FCM error codes that mean the token is permanently dead and safe to delete.
+const DEAD_TOKEN_CODES = new Set([
+  "messaging/registration-token-not-registered",
+  "messaging/invalid-registration-token",
+  "messaging/invalid-argument",
+]);
 
 function verifySecret(incoming: string | null): boolean {
   const secret = process.env.NOTIFY_DEPLOY_SECRET;
@@ -29,6 +45,26 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
   return chunks;
 }
 
+/**
+ * Idempotency guard. The GitHub Action retries the request on any error
+ * (`--retry-all-errors`), so a send that succeeds but whose HTTP response is
+ * lost would otherwise re-notify every subscriber. We atomically claim a marker
+ * keyed by the deploy id (commit SHA); only the first caller for a given deploy
+ * proceeds. Returns true if this request won the claim.
+ */
+async function claimDeploy(
+  db: Firestore,
+  deployId: string
+): Promise<boolean> {
+  const ref = db.collection("notify_dedup").doc(deployId);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (snap.exists) return false;
+    tx.set(ref, { processedAt: new Date().toISOString() });
+    return true;
+  });
+}
+
 export async function POST(req: NextRequest) {
   if (!verifySecret(req.headers.get("authorization"))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -36,58 +72,92 @@ export async function POST(req: NextRequest) {
 
   try {
     const db = getAdminFirestore();
-    const snapshot = await db.collection("fcm_tokens").get();
 
+    // Per-deploy idempotency so workflow retries can't double-notify users.
+    const deployId = req.headers.get("x-deploy-id");
+    if (deployId) {
+      const claimed = await claimDeploy(db, deployId);
+      if (!claimed) {
+        return NextResponse.json({ deduped: true, sent: 0, failed: 0 });
+      }
+    }
+
+    const snapshot = await db.collection("fcm_tokens").get();
     if (snapshot.empty) {
       return NextResponse.json({ sent: 0, failed: 0 });
     }
 
-    const allTokens = snapshot.docs.map((doc) => doc.data().token as string);
+    // The document id IS the token (stored via .doc(token)), making it the
+    // authoritative source. Filter out anything malformed and de-duplicate so a
+    // bad row can never crash the multicast or send the same device twice.
+    const allTokens = Array.from(
+      new Set(
+        snapshot.docs
+          .map((doc) => doc.id)
+          .filter((id): id is string => typeof id === "string" && id.length > 0)
+      )
+    );
+
+    if (allTokens.length === 0) {
+      return NextResponse.json({ sent: 0, failed: 0 });
+    }
+
     const messaging = getAdminMessaging();
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://kaungmratthu.vercel.app";
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ?? "https://kaungmratthu.vercel.app";
 
     let totalSent = 0;
     let totalFailed = 0;
-    const staleTokens: string[] = [];
+    const deadTokens: string[] = [];
 
-    // FCM sendEachForMulticast is capped at 500 tokens per call
+    // FCM sendEachForMulticast is capped at 500 tokens per call.
     for (const batch of chunkArray(allTokens, FCM_BATCH_LIMIT)) {
-      const result = await messaging.sendEachForMulticast({
-        tokens: batch,
-        notification: {
-          title: "New Blog Post",
-          body: "A new post is live — tap to read it.",
-        },
-        data: { url: `${siteUrl}/blog` },
-        webpush: {
-          notification: { icon: "/icons/icon-192.png" },
-          fcmOptions: { link: `${siteUrl}/blog` },
-        },
-      });
+      try {
+        const result = await messaging.sendEachForMulticast({
+          tokens: batch,
+          notification: {
+            title: "New Blog Post",
+            body: "A new post is live — tap to read it.",
+          },
+          data: { url: `${siteUrl}/blog` },
+          webpush: {
+            notification: { icon: "/icons/icon-192.png" },
+            fcmOptions: { link: `${siteUrl}/blog` },
+          },
+        });
 
-      totalSent += result.successCount;
-      totalFailed += result.failureCount;
+        totalSent += result.successCount;
+        totalFailed += result.failureCount;
 
-      result.responses.forEach((resp, i) => {
-        if (
-          !resp.success &&
-          resp.error?.code === "messaging/registration-token-not-registered"
-        ) {
-          staleTokens.push(batch[i]);
-        }
-      });
+        result.responses.forEach((resp, i) => {
+          if (!resp.success && resp.error?.code && DEAD_TOKEN_CODES.has(resp.error.code)) {
+            deadTokens.push(batch[i]);
+          }
+        });
+      } catch (batchErr) {
+        // A transient batch failure (network, FCM hiccup) must not abort the
+        // remaining batches — log it, count it, and keep going.
+        console.error("[notify-deploy] batch send failed", batchErr);
+        totalFailed += batch.length;
+      }
     }
 
-    // Clean up stale / unregistered tokens
-    if (staleTokens.length > 0) {
-      const writeBatch = db.batch();
-      staleTokens.forEach((token) =>
-        writeBatch.delete(db.collection("fcm_tokens").doc(token))
-      );
-      await writeBatch.commit();
+    // Clean up dead / unregistered tokens, respecting Firestore's 500-write cap.
+    if (deadTokens.length > 0) {
+      for (const delChunk of chunkArray(deadTokens, FIRESTORE_BATCH_LIMIT)) {
+        const writeBatch = db.batch();
+        delChunk.forEach((token) =>
+          writeBatch.delete(db.collection("fcm_tokens").doc(token))
+        );
+        await writeBatch.commit();
+      }
     }
 
-    return NextResponse.json({ sent: totalSent, failed: totalFailed });
+    return NextResponse.json({
+      sent: totalSent,
+      failed: totalFailed,
+      pruned: deadTokens.length,
+    });
   } catch (err) {
     console.error("[notify-deploy]", err);
     // This block is only reachable after verifySecret() passes, so it is safe to
