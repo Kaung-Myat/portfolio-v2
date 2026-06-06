@@ -90,6 +90,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ sent: totalSent, failed: totalFailed });
   } catch (err) {
     console.error("[notify-deploy]", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    // This block is only reachable after verifySecret() passes, so it is safe to
+    // surface the underlying error to the (authorized) caller for diagnostics.
+    const message = err instanceof Error ? err.message : String(err);
+    const code = (err as { code?: string | number })?.code;
+    return NextResponse.json(
+      { error: "Internal server error", code, message },
+      { status: 500 }
+    );
   }
 }

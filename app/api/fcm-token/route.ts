@@ -28,7 +28,10 @@ export async function POST(req: NextRequest) {
       .doc(token)
       .set({ token, updatedAt: new Date().toISOString() }, { merge: true });
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    // Public endpoint: log the real error for Vercel runtime logs, but keep the
+    // client-facing response generic to avoid leaking internal details.
+    console.error("[fcm-token]", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
