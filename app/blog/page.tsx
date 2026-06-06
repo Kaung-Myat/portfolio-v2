@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import CopyLinkButton from "@/app/components/CopyLinkButton";
 import { getBlogPosts } from "@/src/lib/content";
 import PWAInstallModal from "@/app/components/PWAInstallModal";
+import NotificationBell from "@/app/components/NotificationBell";
 
 export const dynamic = "force-dynamic";
 
@@ -93,6 +94,9 @@ export default async function BlogPage({ searchParams }: PageProps) {
             Short notes on what I&apos;m building and the things I figure out
             along the way.
           </p>
+          <div className="mt-5">
+            <NotificationBell />
+          </div>
           {totalPosts > POSTS_PER_PAGE && (
             <p className="mt-2 font-mono text-xs text-muted">
               {totalPosts} posts · Page {currentPage} of {totalPages}

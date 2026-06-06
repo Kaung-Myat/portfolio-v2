@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useWebPush } from "@/app/hooks/useWebPush";
 
 type Browser = "chrome" | "safari-ios" | "firefox" | "other";
-type NotifState = "idle" | "loading" | "granted" | "denied" | "unsupported";
 
 function detectBrowser(): Browser {
   const ua = navigator.userAgent;
@@ -17,43 +17,19 @@ function detectBrowser(): Browser {
 export default function PWAInstallModal() {
   const [open, setOpen] = useState(false);
   const [browser, setBrowser] = useState<Browser>("other");
-  const [notifState, setNotifState] = useState<NotifState>("idle");
+  // Notification subscription state + the subscribe action live in the shared
+  // hook, which also auto-persists the token when permission is already granted.
+  const { state: notifState, subscribe } = useWebPush();
   const deferredPrompt = useRef<{ prompt: () => void; userChoice: Promise<{ outcome: string }> } | null>(null);
-  const swReg = useRef<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
     // Already installed as standalone — no need for install prompt
     if (window.matchMedia("(display-mode: standalone)").matches) return;
 
-    // Already shown before — skip
+    // Already shown before — skip the auto-popup (the bell remains available)
     if (localStorage.getItem("pwa-notified")) return;
 
-    const detectedBrowser = detectBrowser();
-    setBrowser(detectedBrowser);
-
-    // Set initial notification support state based on what's already known
-    if (!("Notification" in window)) {
-      setNotifState("unsupported");
-    } else if (Notification.permission === "granted") {
-      setNotifState("granted");
-    } else if (Notification.permission === "denied") {
-      setNotifState("denied");
-    }
-
-    // Register the service worker (served via API route with env vars injected)
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/api/firebase-messaging-sw", {
-          scope: "/",
-          updateViaCache: "none",
-        })
-        .then((reg) => {
-          swReg.current = reg;
-        })
-        .catch(() => {
-          // Silently fail — Firebase not configured yet or network issue
-        });
-    }
+    setBrowser(detectBrowser());
 
     // Capture Chrome/Edge native install prompt
     const handleInstallPrompt = (e: Event) => {
@@ -89,66 +65,6 @@ export default function PWAInstallModal() {
       }
     } catch {
       dismiss();
-    }
-  }
-
-  async function handleEnableNotifications() {
-    setNotifState("loading");
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        setNotifState("denied");
-        return;
-      }
-
-      // Dynamically import Firebase to avoid SSR issues
-      const [{ getFirebaseMessaging }, { getToken }] = await Promise.all([
-        import("@/src/lib/firebase"),
-        import("firebase/messaging"),
-      ]);
-
-      const messaging = await getFirebaseMessaging();
-      if (!messaging) {
-        // Browser doesn't support FCM (e.g. old Safari) — still mark as done
-        setNotifState("granted");
-        return;
-      }
-
-      let registration = swReg.current;
-      if (!registration && "serviceWorker" in navigator) {
-        try {
-          registration = await Promise.race([
-            navigator.serviceWorker.register("/api/firebase-messaging-sw", {
-              scope: "/",
-              updateViaCache: "none",
-            }),
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error("SW registration timeout")), 8000)
-            ),
-          ]);
-          swReg.current = registration;
-        } catch {
-          // SW unavailable — getToken will fail below and outer catch handles it
-        }
-      }
-
-      const token = await getToken(messaging, {
-        vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
-        serviceWorkerRegistration: registration ?? undefined,
-      });
-
-      if (token) {
-        const res = await fetch("/api/fcm-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-        });
-        if (!res.ok) throw new Error("Failed to save FCM token");
-      }
-
-      setNotifState("granted");
-    } catch {
-      setNotifState("denied");
     }
   }
 
@@ -247,7 +163,7 @@ export default function PWAInstallModal() {
           {/* Notification opt-in */}
           {notifState === "idle" && (
             <button
-              onClick={handleEnableNotifications}
+              onClick={subscribe}
               className="w-full rounded-full border border-border px-4 py-2.5 text-sm font-medium text-foreground hover:border-accent hover:text-accent active:scale-[0.98] transition-all"
             >
               Notify me when I post something new
