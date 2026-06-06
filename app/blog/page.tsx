@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import CopyLinkButton from "@/app/components/CopyLinkButton";
 import { getBlogPosts } from "@/src/lib/content";
+import PWAInstallModal from "@/app/components/PWAInstallModal";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +80,7 @@ export default async function BlogPage({ searchParams }: PageProps) {
 
   return (
     <main className="flex flex-1 w-full flex-col px-6 sm:px-10 md:px-16 py-20 sm:py-28">
+      <PWAInstallModal />
       <div className="mx-auto w-full max-w-3xl">
         <header className="mb-12">
           <p className="font-mono text-xs sm:text-sm text-accent mb-2">

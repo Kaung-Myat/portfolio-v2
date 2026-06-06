@@ -1,0 +1,23 @@
+name: Notify blog subscribers
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'content/blog/**'
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Vercel to finish deploying
+        run: sleep 90
+
+      - name: Send push notification to subscribers
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          NOTIFY_DEPLOY_SECRET: ${{ secrets.NOTIFY_DEPLOY_SECRET }}
+        run: |
+          curl --fail --retry 3 --retry-delay 20 --retry-all-errors -s \
+            -X POST "${SITE_URL}/api/notify-deploy" \
+            -H "Authorization: Bearer ${NOTIFY_DEPLOY_SECRET}"
