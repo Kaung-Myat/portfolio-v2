@@ -114,12 +114,27 @@ export default function PWAInstallModal() {
         return;
       }
 
-      const registration =
-        swReg.current ?? (await navigator.serviceWorker.ready);
+      let registration = swReg.current;
+      if (!registration && "serviceWorker" in navigator) {
+        try {
+          registration = await Promise.race([
+            navigator.serviceWorker.register("/api/firebase-messaging-sw", {
+              scope: "/",
+              updateViaCache: "none",
+            }),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("SW registration timeout")), 8000)
+            ),
+          ]);
+          swReg.current = registration;
+        } catch {
+          // SW unavailable — getToken will fail below and outer catch handles it
+        }
+      }
 
       const token = await getToken(messaging, {
         vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
-        serviceWorkerRegistration: registration,
+        serviceWorkerRegistration: registration ?? undefined,
       });
 
       if (token) {
