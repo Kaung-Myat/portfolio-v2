@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { FieldPath } from "firebase-admin/firestore";
 import { getAdminFirestore } from "@/src/lib/firebase-admin";
 
 // firebase-admin requires the Node.js runtime (not Edge); never cache writes.
@@ -27,10 +28,30 @@ export async function POST(req: NextRequest) {
     }
     const token = body.token;
     const db = getAdminFirestore();
-    await db
-      .collection("fcm_tokens")
-      .doc(token)
-      .set({ token, updatedAt: new Date().toISOString() }, { merge: true });
+    const tokens = db.collection("fcm_tokens");
+
+    // FCM tokens rotate; the part before ':' is the stable instance id (one per
+    // browser/device). Without cleanup, each rotation leaves a dead doc behind —
+    // exactly what was breaking delivery. Delete this device's older tokens and
+    // write the fresh one in a single atomic batch, keyed by document-id range
+    // (doc id IS the token), so only the current token survives per device.
+    const instanceId = token.split(":")[0];
+    const batch = db.batch();
+    if (instanceId) {
+      const stale = await tokens
+        .where(FieldPath.documentId(), ">=", `${instanceId}:`)
+        .where(FieldPath.documentId(), "<", `${instanceId}:`)
+        .get();
+      stale.forEach((doc) => {
+        if (doc.id !== token) batch.delete(doc.ref);
+      });
+    }
+    batch.set(
+      tokens.doc(token),
+      { token, instanceId, updatedAt: new Date().toISOString() },
+      { merge: true }
+    );
+    await batch.commit();
     return NextResponse.json({ ok: true });
   } catch (err) {
     // Public endpoint: log the real error for Vercel runtime logs, but keep the

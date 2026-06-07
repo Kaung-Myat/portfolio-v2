@@ -113,16 +113,23 @@ export async function POST(req: NextRequest) {
     // FCM sendEachForMulticast is capped at 500 tokens per call.
     for (const batch of chunkArray(allTokens, FCM_BATCH_LIMIT)) {
       try {
+        // Data-only message: deliberately NO `notification` block anywhere. A
+        // notification payload makes the FCM SDK auto-display the push AND still
+        // fire the service worker's onBackgroundMessage, so every push rendered
+        // twice (confirmed on both Chrome/Android and iOS). With data-only, only
+        // the service worker renders it — exactly one notification per device on
+        // every platform. The SW reads title/body/url from `data`.
         const result = await messaging.sendEachForMulticast({
           tokens: batch,
-          notification: {
+          data: {
             title: "New Blog Post",
             body: "A new post is live — tap to read it.",
+            url: `${siteUrl}/blog`,
           },
-          data: { url: `${siteUrl}/blog` },
           webpush: {
-            notification: { icon: "/icons/icon-192.png" },
-            fcmOptions: { link: `${siteUrl}/blog` },
+            // Default urgency for data messages is "normal"; bump it so the push
+            // service wakes the SW promptly while the device is in the background.
+            headers: { Urgency: "high" },
           },
         });
 

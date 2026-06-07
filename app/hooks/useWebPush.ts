@@ -54,9 +54,11 @@ async function setupForegroundHandler(
   if (!messaging) return undefined; // browser doesn't support FCM
 
   return onMessage(messaging, (payload) => {
-    const title = payload.notification?.title ?? "New Post";
-    const body = payload.notification?.body ?? "";
-    const url = payload.data?.url ?? "/blog";
+    // Data-only messages carry their content under `data` (see /api/notify-deploy).
+    const data = payload.data ?? {};
+    const title = data.title ?? "New Post";
+    const body = data.body ?? "";
+    const url = data.url ?? "/blog";
     (reg ?? getReg())?.showNotification(title, {
       body,
       icon: "/icons/icon-192.png",

@@ -22,9 +22,12 @@ if (_config.apiKey) {
   var messaging = firebase.messaging();
 
   messaging.onBackgroundMessage(function(payload) {
-    var title = (payload.notification && payload.notification.title) || 'New Post';
-    var body = (payload.notification && payload.notification.body) || '';
-    var url = (payload.data && payload.data.url) || '/blog';
+    // We send data-only messages (see /api/notify-deploy), so title/body/url
+    // live under payload.data — NOT payload.notification, which is empty here.
+    var data = payload.data || {};
+    var title = data.title || 'New Post';
+    var body = data.body || '';
+    var url = data.url || '/blog';
     self.registration.showNotification(title, {
       body: body,
       icon: '/icons/icon-192.png',
