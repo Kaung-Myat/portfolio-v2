@@ -12,6 +12,7 @@ cover: /images/blog/flutter-devops.jpg
 ကျွန်တော် Workflow တစ်ခုကို ဥပမာပြောမယ်။
 
 "uat" branch ကို push လုပ်လိုက်တာနဲ့ GitHub Actions Pipeline trigger ဖြစ်တယ်။
+
 အဲ့ Pipeline ထဲမှာ
 - Flutter dependency resolution
 - Static analysis ("flutter analyze")
