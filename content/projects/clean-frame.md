@@ -1,6 +1,6 @@
 ---
 title: clean_frame
-slug: clean_frame
+slug: clean-frame
 description: A powerful architectural framework for Flutter that streamlines Clean Architecture by automating boilerplate code for Data, Domain, and Presentation layers.
 tags: [Dart, Flutter, Clean Architecture, pub.dev]
 date: "2026-06-26"
