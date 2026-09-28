@@ -109,6 +109,7 @@ export default function Navbar() {
         />
       )}
 
+      {pathname !== "/ask" && (
       <div className="mobile-nav-shell fixed left-1/2 z-50 w-max max-w-[calc(100vw-1rem)] -translate-x-1/2 md:hidden print:hidden">
         {moreOpen && (
           <div
@@ -202,6 +203,7 @@ export default function Navbar() {
           </ul>
         </nav>
       </div>
+      )}
     </>
   );
 }

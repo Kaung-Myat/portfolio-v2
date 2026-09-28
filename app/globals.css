@@ -87,8 +87,13 @@ h3 {
     padding-bottom: calc(4.75rem + env(safe-area-inset-bottom));
   }
 
+  body:has(.mobile-fullscreen-page) {
+    padding-bottom: 0;
+  }
+
   .mobile-chat-composer {
-    bottom: calc(4.25rem + env(safe-area-inset-bottom));
+    bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
