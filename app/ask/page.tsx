@@ -8,13 +8,13 @@ export const metadata = {
 
 export default function AskPage() {
   return (
-    <main className="flex flex-1 w-full flex-col px-6 sm:px-10 md:px-16 pt-12 sm:pt-16">
+    <main className="page-gutter flex w-full flex-1 flex-col pb-4 pt-24 sm:pt-24">
       <div className="mx-auto w-full max-w-3xl flex flex-1 flex-col">
         <header className="mb-6">
           <p className="font-mono text-xs sm:text-sm text-accent mb-2">
-            // ask ai
+            {"// ask ai"}
           </p>
-          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-4xl">
             Ask anything about Kaung Mrat Thu
           </h1>
         </header>

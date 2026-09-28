@@ -102,19 +102,19 @@ export default function AboutPage() {
   const { frontmatter, content } = getAbout();
 
   return (
-    <main className="flex flex-1 w-full flex-col px-6 sm:px-10 md:px-16 py-20 sm:py-28">
+    <main className="page-gutter flex w-full flex-1 flex-col pb-16 pt-24 sm:py-28">
       <div className="mx-auto w-full max-w-3xl">
         <header className="mb-10">
           <p className="font-mono text-xs sm:text-sm text-accent mb-2">
-            // about
+            {"// about"}
           </p>
-          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-4xl">
             {frontmatter.name}
           </h1>
           <p className="mt-2 font-mono text-sm text-muted">
             aka {frontmatter.nickname}
           </p>
-          <p className="mt-4 text-lg text-muted">
+          <p className="mt-4 text-base text-muted sm:text-lg">
             {frontmatter.role} · {frontmatter.company}
           </p>
           <p className="mt-1 text-sm text-muted">{frontmatter.location}</p>
@@ -137,12 +137,12 @@ export default function AboutPage() {
         </section>
 
         <section className="mb-12">
-          <h2 className="font-mono text-xs text-accent mb-4">// skills</h2>
-          <ul className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <h2 className="mb-4 font-mono text-xs text-accent">{"// skills"}</h2>
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
             {SKILLS.map((skill) => (
               <li
                 key={skill.name}
-                className="rounded-lg border border-border bg-surface/40 px-3 py-2.5 font-mono text-sm text-foreground text-center flex items-center justify-center gap-2"
+                className="flex min-w-0 items-center justify-center gap-2 rounded-lg border border-border bg-surface/40 px-2 py-2.5 text-center font-mono text-xs text-foreground sm:px-3 sm:text-sm"
               >
                 <span className="w-5 h-5 relative flex-shrink-0">
                   <Image
@@ -160,7 +160,7 @@ export default function AboutPage() {
         </section>
 
         <section>
-          <h2 className="font-mono text-xs text-accent mb-4">// elsewhere</h2>
+          <h2 className="mb-4 font-mono text-xs text-accent">{"// elsewhere"}</h2>
           <ul className="flex flex-wrap gap-2">
             <li>
               <a

@@ -26,12 +26,12 @@ export default function ExperienceTimeline() {
   return (
     <section
       id="experience"
-      className="relative w-full px-6 sm:px-10 md:px-16 py-20 sm:py-28"
+      className="page-gutter relative w-full pb-16 pt-8 sm:pb-24 sm:pt-12"
     >
       <div className="mx-auto w-full max-w-3xl">
-        <header className="mb-12">
+        <header className="mb-8 sm:mb-12">
           <p className="font-mono text-xs sm:text-sm text-accent mb-2">
-            // experience
+            {"// experience"}
           </p>
           <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
             Where I&apos;ve been building.

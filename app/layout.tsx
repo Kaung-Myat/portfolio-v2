@@ -1,7 +1,35 @@
 import type { Metadata } from "next";
-import { Analytics } from '@vercel/analytics/next';
+import { Inter, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import Navbar from "./components/Navbar";
+import ThemeSwitcher from "./components/ThemeSwitcher";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const jetBrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
+
+const themeScript = `
+  (function () {
+    try {
+      var theme = localStorage.getItem("portfolio-theme");
+      if (theme === "light" || theme === "dark") {
+        document.documentElement.setAttribute("data-theme", theme);
+      } else {
+        document.documentElement.removeAttribute("data-theme");
+      }
+    } catch (_) {}
+  })();
+`;
 
 export const metadata: Metadata = {
   title: "Kaung Mrat Thu — Flutter Developer",
@@ -15,23 +43,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html
+      lang="en"
+      className={`${inter.variable} ${jetBrainsMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin=""
-        />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-        />
+        <Script id="theme-init" strategy="beforeInteractive">
+          {themeScript}
+        </Script>
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        <ThemeSwitcher />
         <Navbar />
         {children}
-         <Analytics />
+        <Analytics />
       </body>
     </html>
   );

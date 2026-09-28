@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { profile } from "@/src/data/profile";
 
 function GitHubIcon() {
@@ -73,7 +72,7 @@ export default function SiteFooter() {
   const linkedInUrl = profile.socials.find((s) => s.label === "LinkedIn")?.href;
 
   return (
-    <footer className="w-full px-6 sm:px-10 md:px-16 py-12">
+    <footer className="page-gutter w-full py-10 sm:py-12">
       <div className="mx-auto max-w-5xl flex flex-col items-center gap-4">
         <p className="font-mono text-xs text-muted">
           Built by{" "}

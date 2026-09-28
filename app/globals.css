@@ -1,12 +1,36 @@
 @import "tailwindcss";
 
-:root {
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: #f5f7fb;
+  --foreground: #151922;
+  --muted: #667085;
+  --accent: #6654d9;
+  --surface: #ffffff;
+  --border: rgba(21, 25, 34, 0.12);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
   --background: #111111;
   --foreground: #f5f5f5;
   --muted: #a1a1a1;
-  --accent: #7c6af7;
+  --accent: #8b7cf8;
   --surface: #1a1a1a;
-  --border: rgba(245, 245, 245, 0.08);
+  --border: rgba(245, 245, 245, 0.09);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --background: #111111;
+    --foreground: #f5f5f5;
+    --muted: #a1a1a1;
+    --accent: #8b7cf8;
+    --surface: #1a1a1a;
+    --border: rgba(245, 245, 245, 0.09);
+  }
 }
 
 @theme inline {
@@ -16,8 +40,8 @@
   --color-accent: var(--accent);
   --color-surface: var(--surface);
   --color-border: var(--border);
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
 html,
@@ -26,10 +50,52 @@ body {
   color: var(--foreground);
 }
 
+html {
+  scroll-padding-top: 7rem;
+  text-size-adjust: 100%;
+}
+
 body {
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+.page-gutter {
+  padding-inline: clamp(1.25rem, 4vw, 4rem);
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+h1,
+h2,
+h3 {
+  overflow-wrap: anywhere;
+}
+
+.mobile-nav-shell {
+  bottom: calc(0.875rem + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 767px) {
+  body {
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  }
+
+  .mobile-chat-composer {
+    bottom: calc(4.25rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media print {
+  body {
+    padding-bottom: 0;
+  }
 }
 
 ::selection {

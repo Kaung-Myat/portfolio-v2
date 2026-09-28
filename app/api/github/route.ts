@@ -1,6 +1,8 @@
 import { profile } from "@/src/data/profile";
 
 const GITHUB_GRAPHQL_URL = "https://api.github.com/graphql";
+const GITHUB_API_VERSION = "2022-11-28";
+const REVALIDATE_SECONDS = 3600;
 
 const GITHUB_QUERY = `
   query($username: String!) {
@@ -16,133 +18,200 @@ const GITHUB_QUERY = `
           }
         }
       }
-      repositories(first: 100, orderBy: {field: STARGAZERS, direction: DESC}, ownerAffiliations: OWNER) {
-        totalCount
-      }
-      followers {
-        totalCount
-      }
     }
   }
 `;
 
-interface ContributionDay {
-  contributionCount: number;
-  date: string;
+interface PublicUserResponse {
+  login: string;
+  public_repos: number;
+  followers: number;
 }
 
-interface ContributionWeek {
-  contributionDays: ContributionDay[];
+interface ContributionData {
+  total: number;
+  days: number[];
 }
 
-interface ContributionCalendar {
-  totalContributions: number;
-  weeks: ContributionWeek[];
-}
-
-interface GitHubData {
-  contributionsCollection: {
-    contributionCalendar: ContributionCalendar;
+interface GraphQLResponse {
+  data?: {
+    user?: {
+      contributionsCollection?: {
+        contributionCalendar?: {
+          totalContributions: number;
+          weeks: Array<{
+            contributionDays: Array<{
+              contributionCount: number;
+              date: string;
+            }>;
+          }>;
+        };
+      };
+    };
   };
-  repositories: {
-    totalCount: number;
-  };
-  followers: {
-    totalCount: number;
+  errors?: Array<{ message: string }>;
+}
+
+export const revalidate = 3600;
+
+function githubHeaders() {
+  return {
+    Accept: "application/vnd.github+json",
+    "User-Agent": "kaung-mrat-thu-portfolio",
+    "X-GitHub-Api-Version": GITHUB_API_VERSION,
   };
 }
 
-export const dynamic = "force-dynamic";
+async function fetchPublicUser(username: string): Promise<PublicUserResponse> {
+  const response = await fetch(`https://api.github.com/users/${username}`, {
+    headers: githubHeaders(),
+    next: { revalidate: REVALIDATE_SECONDS },
+  });
 
-export async function GET() {
-  const githubUrl = profile.socials.find((s) => s.label === "GitHub")?.href || "";
-  const username = githubUrl.replace("https://github.com/", "");
-
-  if (!process.env.GITHUB_TOKEN) {
-    return new Response(
-      JSON.stringify({
-        error: "GITHUB_TOKEN not configured",
-        fallback: true,
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+  if (!response.ok) {
+    throw new Error(`GitHub REST API returned ${response.status}`);
   }
 
+  return response.json() as Promise<PublicUserResponse>;
+}
+
+async function fetchGraphQLContributions(
+  username: string,
+  token: string,
+): Promise<ContributionData> {
+  const response = await fetch(GITHUB_GRAPHQL_URL, {
+    method: "POST",
+    headers: {
+      ...githubHeaders(),
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      query: GITHUB_QUERY,
+      variables: { username },
+    }),
+    next: { revalidate: REVALIDATE_SECONDS },
+  });
+
+  if (!response.ok) {
+    throw new Error(`GitHub GraphQL API returned ${response.status}`);
+  }
+
+  const json = (await response.json()) as GraphQLResponse;
+  const calendar =
+    json.data?.user?.contributionsCollection?.contributionCalendar;
+
+  if (!calendar || json.errors?.length) {
+    throw new Error(json.errors?.[0]?.message ?? "Contribution data unavailable");
+  }
+
+  const days = calendar.weeks.flatMap((week) =>
+    week.contributionDays.map((day) => day.contributionCount),
+  );
+
+  return {
+    total: calendar.totalContributions,
+    days: days.slice(-364),
+  };
+}
+
+async function fetchPublicContributions(
+  username: string,
+): Promise<ContributionData> {
+  const response = await fetch(
+    `https://github.com/users/${username}/contributions`,
+    {
+      headers: { "User-Agent": "kaung-mrat-thu-portfolio" },
+      next: { revalidate: REVALIDATE_SECONDS },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`GitHub contribution page returned ${response.status}`);
+  }
+
+  const html = await response.text();
+  const days: Array<{ date: string; count: number }> = [];
+  const dayPattern =
+    /(<td\b[^>]*class="[^"]*ContributionCalendar-day[^"]*"[^>]*><\/td>)\s*<tool-tip\b[^>]*>([^<]*)<\/tool-tip>/g;
+
+  for (const match of html.matchAll(dayPattern)) {
+    const date = match[1].match(/\bdata-date="([^"]+)"/)?.[1];
+    if (!date) continue;
+
+    const countMatch = match[2].match(/([\d,]+) contributions?/i);
+    const count = countMatch
+      ? Number.parseInt(countMatch[1].replaceAll(",", ""), 10)
+      : 0;
+
+    days.push({ date, count });
+  }
+
+  if (days.length === 0) {
+    throw new Error("GitHub contribution calendar markup was not recognized");
+  }
+
+  const orderedDays = days
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-364)
+    .map((day) => day.count);
+
+  return {
+    total: orderedDays.reduce((sum, count) => sum + count, 0),
+    days: orderedDays,
+  };
+}
+
+async function fetchContributions(username: string): Promise<ContributionData> {
   try {
-    const response = await fetch(GITHUB_GRAPHQL_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+    return await fetchPublicContributions(username);
+  } catch (publicError) {
+    const token = process.env.GITHUB_TOKEN;
+
+    if (token) {
+      return await fetchGraphQLContributions(username, token);
+    }
+
+    throw publicError;
+  }
+}
+
+export async function GET() {
+  const githubUrl =
+    profile.socials.find((social) => social.label === "GitHub")?.href ?? "";
+  const username = githubUrl
+    .replace(/^https:\/\/github\.com\//, "")
+    .replace(/\/$/, "");
+
+  try {
+    const [user, contributions] = await Promise.all([
+      fetchPublicUser(username),
+      fetchContributions(username),
+    ]);
+
+    return Response.json(
+      {
+        contributions: contributions.total,
+        repos: user.public_repos,
+        followers: user.followers,
+        contributionDays: contributions.days,
+        username: user.login,
       },
-      body: JSON.stringify({
-        query: GITHUB_QUERY,
-        variables: { username },
-      }),
-    });
-
-    const status = response.status;
-    const responseText = await response.text();
-
-    if (status !== 200) {
-      console.error("GitHub API error:", status, responseText);
-      throw new Error(`GitHub API error: ${status} - ${responseText}`);
-    }
-
-    const json = JSON.parse(responseText);
-
-    if (json.errors) {
-      console.error("GraphQL errors:", json.errors);
-      throw new Error(json.errors[0].message);
-    }
-
-    if (!json.data?.user) {
-      console.error("No user data:", json);
-      throw new Error(`User "${username}" not found`);
-    }
-
-    const user = json.data.user;
-    const contributionsCollection = user.contributionsCollection;
-    const contributionCalendar = contributionsCollection?.contributionCalendar;
-
-    const contributionDays: number[] = [];
-    if (contributionCalendar?.weeks) {
-      contributionCalendar.weeks.forEach((week: ContributionWeek) => {
-        if (week.contributionDays) {
-          week.contributionDays.forEach((day: ContributionDay) => {
-            contributionDays.push(day.contributionCount);
-          });
-        }
-      });
-    }
-
-    const result = {
-      contributions: contributionCalendar?.totalContributions || 0,
-      repos: user.repositories?.totalCount || 0,
-      followers: user.followers?.totalCount || 0,
-      contributionDays: contributionDays.slice(-364),
-      username,
-    };
-
-    return new Response(JSON.stringify(result), {
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+      {
+        headers: {
+          "Cache-Control":
+            "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
+        },
       },
-    });
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({
-        error: message,
-        fallback: true,
-      }),
+
+    return Response.json(
+      { error: message },
       {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
+        status: 502,
+        headers: { "Cache-Control": "no-store" },
       },
     );
   }

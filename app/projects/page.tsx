@@ -11,13 +11,13 @@ export default function ProjectsPage() {
   const projects = getProjects().map((p) => p.frontmatter);
 
   return (
-    <main className="flex flex-1 w-full flex-col px-6 sm:px-10 md:px-16 py-20 sm:py-28">
+    <main className="page-gutter flex w-full flex-1 flex-col pb-16 pt-24 sm:py-28">
       <div className="mx-auto w-full max-w-5xl">
         <header className="mb-10">
           <p className="font-mono text-xs sm:text-sm text-accent mb-2">
-            // projects
+            {"// projects"}
           </p>
-          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-4xl">
             Things I&apos;ve built.
           </h1>
           <p className="mt-3 text-muted max-w-prose">

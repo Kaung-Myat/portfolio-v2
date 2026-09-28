@@ -1,6 +1,11 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion, type Variants } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  type Variants,
+} from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { profile } from "@/src/data/profile";
 import type { HeroCta } from "@/src/types";
@@ -41,42 +46,75 @@ function TypingHeadline({
   startDelayMs: number;
 }) {
   const reduceMotion = useReducedMotion();
-  const [count, setCount] = useState(reduceMotion ? text.length : 0);
+  const [count, setCount] = useState(0);
 
   useEffect(() => {
     if (reduceMotion) return;
-    let frame: number;
-    const start = performance.now() + startDelayMs;
-    const perChar = 55;
 
-    const tick = (now: number) => {
-      const elapsed = now - start;
-      if (elapsed < 0) {
-        frame = requestAnimationFrame(tick);
-        return;
-      }
-      const next = Math.min(text.length, Math.floor(elapsed / perChar));
-      setCount(next);
-      if (next < text.length) frame = requestAnimationFrame(tick);
+    let timeout: ReturnType<typeof setTimeout>;
+    let cancelled = false;
+    const typeDelayMs = 55;
+    const deleteDelayMs = 35;
+    const completedPauseMs = 1800;
+    const emptyPauseMs = 500;
+
+    const schedule = (callback: () => void, delay: number) => {
+      timeout = setTimeout(callback, delay);
     };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+
+    const typeNext = (nextCount: number) => {
+      if (cancelled) return;
+      setCount(nextCount);
+
+      if (nextCount < text.length) {
+        schedule(() => typeNext(nextCount + 1), typeDelayMs);
+      } else {
+        schedule(() => deleteNext(text.length - 1), completedPauseMs);
+      }
+    };
+
+    const deleteNext = (nextCount: number) => {
+      if (cancelled) return;
+      setCount(nextCount);
+
+      if (nextCount > 0) {
+        schedule(() => deleteNext(nextCount - 1), deleteDelayMs);
+      } else {
+        schedule(() => typeNext(1), emptyPauseMs);
+      }
+    };
+
+    schedule(() => typeNext(0), startDelayMs);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
   }, [text, startDelayMs, reduceMotion]);
 
-  const done = count >= text.length;
+  const visibleCount = reduceMotion ? text.length : count;
+  const done = visibleCount >= text.length;
 
   return (
     <h1
-      className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-[1.05]"
+      className="grid text-[1.9rem] font-semibold leading-[1.08] tracking-tight sm:text-5xl md:text-6xl"
       aria-label={text}
     >
-      <span aria-hidden="true">{text.slice(0, count)}</span>
       <span
         aria-hidden="true"
-        className={`inline-block w-0.5 h-[0.9em] translate-y-[0.12em] ml-1 bg-accent ${
-          done ? "animate-pulse" : ""
-        }`}
-      />
+        className="invisible col-start-1 row-start-1"
+      >
+        {text}
+        <span className="ml-1 inline-block w-0.5">&nbsp;</span>
+      </span>
+      <span aria-hidden="true" className="col-start-1 row-start-1">
+        {text.slice(0, visibleCount)}
+        <span
+          className={`ml-1 inline-block h-[0.9em] w-0.5 translate-y-[0.12em] bg-accent ${
+            done ? "animate-pulse" : ""
+          }`}
+        />
+      </span>
     </h1>
   );
 }
@@ -112,29 +150,48 @@ interface GitHubStatsData {
 function GitHubStats() {
   const [data, setData] = useState<GitHubStatsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
-  const githubUrl = profile.socials.find((s) => s.label === "GitHub")?.href || "";
+  const githubUrl =
+    profile.socials.find((social) => social.label === "GitHub")?.href ?? "";
   const username = githubUrl.replace("https://github.com/", "");
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchGitHubData = async () => {
       try {
-        const res = await fetch("/api/github");
-        const json = await res.json();
-        if (json.error) {
-          console.warn("GitHub API error:", json.error);
+        const res = await fetch("/api/github", {
+          signal: controller.signal,
+          cache: "force-cache",
+        });
+        const json = (await res.json()) as GitHubStatsData & {
+          error?: string;
+        };
+
+        if (
+          !res.ok ||
+          json.error ||
+          !Number.isFinite(json.contributions) ||
+          !Number.isFinite(json.repos) ||
+          !Number.isFinite(json.followers)
+        ) {
+          throw new Error(json.error ?? "GitHub stats response was invalid");
         }
-        if (json.contributions) {
-          setData(json);
-        }
+
+        setData(json);
       } catch (err) {
-        console.warn("GitHub fetch failed:", err);
+        if (!controller.signal.aborted) {
+          console.warn("GitHub fetch failed:", err);
+          setFailed(true);
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
     fetchGitHubData();
+    return () => controller.abort();
   }, []);
 
   const weeks = 52;
@@ -142,21 +199,23 @@ function GitHubStats() {
   const totalDays = weeks * daysPerWeek;
 
   const contributionDays = useMemo(() => {
-    if (data?.contributionDays) {
-      const padded = [...Array(totalDays - data.contributionDays.length).fill(0), ...data.contributionDays];
+    if (data?.contributionDays?.length) {
+      const padded = [
+        ...Array(totalDays - data.contributionDays.length).fill(0),
+        ...data.contributionDays,
+      ];
       return padded.slice(-totalDays);
     }
-    return Array.from({ length: totalDays }, (_, i) => {
-      const hash = ((i * 7 + 3) % 17) / 17;
-      if (hash > 0.7) return 4;
-      if (hash > 0.5) return 3;
-      if (hash > 0.3) return 2;
-      if (hash > 0.15) return 1;
-      return 0;
-    });
+    return Array<number>(totalDays).fill(0);
   }, [data, totalDays]);
 
-  const levels = ["bg-muted/20", "bg-accent/30", "bg-accent/50", "bg-accent/70", "bg-accent"];
+  const levels = [
+    "bg-muted/20",
+    "bg-accent/30",
+    "bg-accent/50",
+    "bg-accent/70",
+    "bg-accent",
+  ];
 
   const getLevel = (count: number) => {
     if (count === 0) return 0;
@@ -176,35 +235,28 @@ function GitHubStats() {
 
   return (
     <motion.div variants={line} className="pt-0">
-      <div className="flex items-center gap-2 mb-3">
+      <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <a
           href={githubUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-mono text-xs text-accent hover:underline"
+          className="shrink-0 whitespace-nowrap font-mono text-xs text-accent hover:underline"
         >
           @{data?.username || username}
         </a>
         <span className="font-mono text-xs text-muted">contributions in the last year</span>
       </div>
 
-      <div className="flex gap-1 mb-4 overflow-x-auto pb-2">
+      <div className="mb-4 flex gap-1 overflow-x-auto pb-2" aria-hidden="true">
         {Array.from({ length: weeks }).map((_, weekIndex) => (
           <div key={weekIndex} className="flex flex-col gap-0.5">
             {Array.from({ length: daysPerWeek }).map((_, dayIndex) => {
               const index = weekIndex * daysPerWeek + dayIndex;
               const level = getLevel(contributionDays[index] || 0);
               return (
-                <motion.div
+                <div
                   key={dayIndex}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{
-                    delay: index * 0.002,
-                    duration: 0.2,
-                    ease: "easeOut",
-                  }}
-                  className={`w-2.5 h-2.5 rounded-sm ${levels[level]}`}
+                  className={`h-2.5 w-2.5 rounded-sm ${levels[level]}`}
                   title={`${contributionDays[index] || 0} contributions`}
                 />
               );
@@ -213,20 +265,26 @@ function GitHubStats() {
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-4 text-sm">
+      <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm" aria-live="polite">
         <div className="flex items-center gap-1.5">
-          <span className="font-mono text-accent">{data?.contributions || "—"}</span>
+          <span className="font-mono text-accent">{data?.contributions ?? "—"}</span>
           <span className="text-muted">contributions</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="font-mono text-accent">{data?.repos || "—"}</span>
+          <span className="font-mono text-accent">{data?.repos ?? "—"}</span>
           <span className="text-muted">public repos</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="font-mono text-accent">{data?.followers || "—"}</span>
+          <span className="font-mono text-accent">{data?.followers ?? "—"}</span>
           <span className="text-muted">followers</span>
         </div>
       </div>
+
+      {failed && (
+        <p className="mt-2 font-mono text-[11px] text-muted">
+          GitHub stats are temporarily unavailable.
+        </p>
+      )}
     </motion.div>
   );
 }
@@ -305,7 +363,7 @@ function ContactOptionsModal({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="w-full max-w-sm mx-4 rounded-2xl border border-border bg-surface p-6 shadow-xl"
+            className="mx-4 max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-2xl border border-border bg-surface p-5 shadow-xl sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
@@ -356,20 +414,20 @@ export default function Hero() {
     <>
       <section
         id="hero"
-        className="relative w-full px-6 sm:px-10 md:px-16 py-24 sm:py-32 md:py-36"
+        className="page-gutter relative w-full pb-8 pt-24 sm:pb-12 sm:pt-28 md:pt-32"
       >
         <motion.div
           variants={container}
           initial="hidden"
           animate="show"
-          className="mx-auto w-full max-w-5xl grid grid-cols-1 md:grid-cols-1 gap-12 md:gap-16 items-center"
+          className="mx-auto grid w-full max-w-5xl grid-cols-1 items-center gap-10 md:gap-16"
         >
-          <div className="flex flex-col gap-6 order-1">
+          <div className="order-1 flex min-w-0 flex-col gap-5 sm:gap-6">
             <motion.p
               variants={line}
               className="font-mono text-xs sm:text-sm text-accent tracking-tight"
             >
-              // flutter developer · {profile.company.toLowerCase()}
+              {`// flutter developer · ${profile.company.toLowerCase()}`}
             </motion.p>
 
             <motion.div variants={line}>
@@ -378,7 +436,7 @@ export default function Hero() {
 
             <motion.p
               variants={line}
-              className="max-w-xl text-base sm:text-lg leading-relaxed text-muted"
+              className="max-w-xl text-[15px] leading-relaxed text-muted sm:text-lg"
             >
               {profile.intro}
             </motion.p>

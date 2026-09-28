@@ -65,7 +65,7 @@ export default async function ProjectPage({ params }: { params: Params }) {
   const { frontmatter, content } = project;
 
   return (
-    <main className="flex flex-1 w-full flex-col px-6 sm:px-10 md:px-16 py-16 sm:py-24">
+    <main className="page-gutter flex w-full flex-1 flex-col pb-16 pt-24 sm:py-24">
       <div className="mx-auto w-full max-w-3xl">
         <Link
           href="/projects"
@@ -81,10 +81,10 @@ export default async function ProjectPage({ params }: { params: Params }) {
               {formatDate(frontmatter.date)}
             </span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight text-foreground sm:text-4xl">
             {frontmatter.title}
           </h1>
-          <p className="mt-3 text-lg leading-relaxed text-muted">
+          <p className="mt-3 text-base leading-relaxed text-muted sm:text-lg">
             {frontmatter.description}
           </p>
 

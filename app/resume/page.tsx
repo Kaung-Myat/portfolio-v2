@@ -43,14 +43,14 @@ export default function ResumePage() {
   const projects = getProjects().map((p) => p.frontmatter);
 
   return (
-    <main className="flex flex-1 w-full flex-col px-6 sm:px-10 md:px-16 py-16 sm:py-24 print:py-8 print:bg-white print:text-black">
+    <main className="page-gutter flex w-full flex-1 flex-col pb-16 pt-24 sm:py-24 print:py-8 print:bg-white print:text-black">
       <div className="mx-auto w-full max-w-3xl">
-        <div className="mb-8 flex items-start justify-between gap-4">
+        <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:justify-between">
           <div>
             <p className="font-mono text-xs sm:text-sm text-accent mb-2 print:text-[#7c6af7]">
-              // resume
+              {"// resume"}
             </p>
-            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight print:text-black">
+            <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-4xl print:text-black">
               {frontmatter.name}
             </h1>
           </div>
@@ -72,7 +72,7 @@ export default function ResumePage() {
           <p>
             <a
               href={`mailto:${frontmatter.email}`}
-              className="hover:text-accent transition-colors"
+              className="break-all hover:text-accent transition-colors"
             >
               {frontmatter.email}
             </a>
@@ -82,7 +82,7 @@ export default function ResumePage() {
               href={frontmatter.github}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-accent transition-colors"
+              className="break-all hover:text-accent transition-colors"
             >
               {frontmatter.github}
             </a>
@@ -107,7 +107,7 @@ export default function ResumePage() {
                     {e.period}
                   </span>
                 </div>
-                <p className="mt-1 text-sm leading-relaxed text-[#888] print:text-black/70">
+                <p className="mt-1 text-sm leading-relaxed text-muted print:text-black/70">
                   {e.description}
                 </p>
                 {e.stack && e.stack.length > 0 && (
@@ -130,7 +130,7 @@ export default function ResumePage() {
                 <span className="shrink-0 font-medium text-foreground sm:w-48 print:text-black">
                   {p.title}
                 </span>
-                <span className="text-sm leading-relaxed text-[#888] print:text-black/70">
+                <span className="text-sm leading-relaxed text-muted print:text-black/70">
                   {p.description}
                 </span>
               </li>
@@ -151,7 +151,7 @@ export default function ResumePage() {
                 {EDUCATION.period}
               </span>
             </div>
-            <p className="mt-1 text-sm text-[#888] print:text-black/70">
+            <p className="mt-1 text-sm text-muted print:text-black/70">
               {EDUCATION.degree}
             </p>
           </div>

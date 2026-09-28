@@ -110,7 +110,7 @@ export default function AskChat() {
     <div className="flex flex-1 flex-col">
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto rounded-2xl border border-border bg-[#1a1a1a] p-5 pb-8 mb-32"
+        className="mb-44 flex-1 overflow-y-auto rounded-2xl border border-border bg-surface p-3 pb-8 sm:p-5 md:mb-32"
         aria-live="polite"
       >
         {messages.length === 0 ? (
@@ -133,7 +133,7 @@ export default function AskChat() {
               if (m.role === "user") {
                 return (
                   <div key={i} className="flex justify-end">
-                    <div className="max-w-[80%] rounded-2xl rounded-br-md bg-accent text-background px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap">
+                    <div className="max-w-[90%] [overflow-wrap:anywhere] rounded-2xl rounded-br-md bg-accent px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-background sm:max-w-[80%] sm:px-4">
                       {m.content}
                     </div>
                   </div>
@@ -141,14 +141,14 @@ export default function AskChat() {
               }
               return (
                 <div key={i} className="flex justify-start">
-                  <div className="flex items-start gap-2 max-w-[85%]">
+                  <div className="flex max-w-[95%] items-start gap-2 sm:max-w-[85%]">
                     <span
                       className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent"
                       aria-hidden="true"
                     >
                       <BotIcon />
                     </span>
-                    <div className="rounded-2xl rounded-tl-md bg-[#222] border border-border px-4 py-2.5 text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+                    <div className="[overflow-wrap:anywhere] rounded-2xl rounded-tl-md border border-border bg-foreground/5 px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-foreground sm:px-4">
                       {isAssistantPending ? (
                         <span className="inline-flex gap-1">
                           <span className="h-1.5 w-1.5 rounded-full bg-muted animate-pulse" />
@@ -172,9 +172,9 @@ export default function AskChat() {
           e.preventDefault();
           ask(input);
         }}
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/80 backdrop-blur-md"
+        className="mobile-chat-composer fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/80 backdrop-blur-md"
       >
-        <div className="mx-auto w-full max-w-3xl px-6 sm:px-10 md:px-16 py-3">
+        <div className="page-gutter mx-auto w-full max-w-3xl py-3">
           {showSuggestions && (
             <ul className="mb-3 flex flex-wrap gap-2">
               {SUGGESTIONS.map((s) => (
@@ -191,19 +191,19 @@ export default function AskChat() {
               ))}
             </ul>
           )}
-          <div className="flex gap-2">
+          <div className="flex min-w-0 gap-2">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about Kaung's projects, stack, or experience…"
               disabled={busy}
-              className="flex-1 rounded-full bg-surface border border-border px-4 py-2 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+              className="min-w-0 flex-1 rounded-full border border-border bg-surface px-4 py-2 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={busy || !input.trim()}
-              className="rounded-full bg-accent text-background px-5 py-2 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-accent/90 transition-colors"
+              className="shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-40 sm:px-5"
             >
               Send
             </button>

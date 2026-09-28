@@ -127,11 +127,11 @@ export default function ProjectGrid({
       {filtered.length === 0 ? (
         <p className="text-muted">No projects match this filter yet.</p>
       ) : (
-        <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
           {filtered.map((p) => (
             <li
               key={p.slug}
-              className="group relative rounded-2xl border border-border bg-surface/30 p-5 transition-colors hover:border-accent/40"
+              className="group relative min-w-0 rounded-2xl border border-border bg-surface/30 p-4 transition-colors hover:border-accent/40 sm:p-5"
             >
               <Link
                 href={`/projects/${p.slug}`}
@@ -141,8 +141,8 @@ export default function ProjectGrid({
 
               <CoverPlaceholder title={p.title} cover={p.cover} />
 
-              <div className="mt-4 flex items-center gap-2">
-                <h2 className="text-lg font-semibold text-foreground tracking-tight">
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <h2 className="min-w-0 text-base font-semibold tracking-tight text-foreground sm:text-lg">
                   {p.title}
                 </h2>
                 {p.featured && (
@@ -150,12 +150,12 @@ export default function ProjectGrid({
                     Featured
                   </span>
                 )}
-                <span className="ml-auto">
+                <span className="ml-auto shrink-0">
                   <StatusBadge status={p.status} />
                 </span>
               </div>
 
-              <p className="mt-2 text-sm leading-relaxed text-[#888] line-clamp-3">
+              <p className="mt-2 text-sm leading-relaxed text-muted line-clamp-3">
                 {p.description}
               </p>
 

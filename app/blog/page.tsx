@@ -2,8 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import CopyLinkButton from "@/app/components/CopyLinkButton";
 import { getBlogPosts } from "@/src/lib/content";
-import PWAInstallModal from "@/app/components/PWAInstallModal";
-import NotificationBell from "@/app/components/NotificationBell";
 
 export const dynamic = "force-dynamic";
 
@@ -80,23 +78,19 @@ export default async function BlogPage({ searchParams }: PageProps) {
   }
 
   return (
-    <main className="flex flex-1 w-full flex-col px-6 sm:px-10 md:px-16 py-20 sm:py-28">
-      <PWAInstallModal />
+    <main className="page-gutter flex w-full flex-1 flex-col pb-16 pt-24 sm:py-28">
       <div className="mx-auto w-full max-w-3xl">
         <header className="mb-12">
           <p className="font-mono text-xs sm:text-sm text-accent mb-2">
-            // blog
+            {"// blog"}
           </p>
-          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-4xl">
             Writing.
           </h1>
           <p className="mt-3 text-muted max-w-prose">
             Short notes on what I&apos;m building and the things I figure out
             along the way.
           </p>
-          <div className="mt-5">
-            <NotificationBell />
-          </div>
           {totalPosts > POSTS_PER_PAGE && (
             <p className="mt-2 font-mono text-xs text-muted">
               {totalPosts} posts · Page {currentPage} of {totalPages}
@@ -127,7 +121,7 @@ export default async function BlogPage({ searchParams }: PageProps) {
                   </time>
                   <div className="flex-1">
                     <div className="flex items-start justify-between gap-3">
-                      <h2 className="text-lg font-medium text-foreground tracking-tight group-hover:text-accent transition-colors">
+                      <h2 className="text-base font-medium tracking-tight text-foreground transition-colors group-hover:text-accent sm:text-lg">
                         {frontmatter.title}
                       </h2>
                       <div className="relative z-20 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
@@ -138,7 +132,7 @@ export default async function BlogPage({ searchParams }: PageProps) {
                         />
                       </div>
                     </div>
-                    <p className="mt-1.5 text-sm leading-relaxed text-[#888]">
+                    <p className="mt-1.5 text-sm leading-relaxed text-muted">
                       {frontmatter.description}
                     </p>
                     <ul className="mt-3 flex flex-wrap gap-1.5 font-mono text-[11px] text-muted">

@@ -113,8 +113,7 @@ export default async function BlogPostPage({ params }: { params: Params }) {
   const headings = extractHeadings(content);
 
   return (
-    // Added pt-28 (112px top padding) to clear the mobile navbar cleanly
-    <main className="flex flex-1 w-full flex-col px-6 sm:px-10 md:px-16 pt-28 pb-16 sm:py-24">
+    <main className="page-gutter flex w-full flex-1 flex-col pb-16 pt-24 sm:py-24">
       <div className="mx-auto w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-8">
         <div>
           <Link
@@ -144,10 +143,10 @@ export default async function BlogPostPage({ params }: { params: Params }) {
               </time>
               <CopyLinkButton ariaLabel={`Copy link to ${frontmatter.title}`} />
             </div>
-            <h1 className="mt-3 text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">
+            <h1 className="mt-3 text-[1.75rem] font-semibold leading-tight tracking-tight text-foreground sm:text-4xl">
               {frontmatter.title}
             </h1>
-            <p className="mt-3 text-lg leading-relaxed text-muted">
+            <p className="mt-3 text-base leading-relaxed text-muted sm:text-lg">
               {frontmatter.description}
             </p>
             <ul className="mt-5 flex flex-wrap gap-1.5 font-mono text-[11px] text-muted">
@@ -166,7 +165,7 @@ export default async function BlogPostPage({ params }: { params: Params }) {
           {headings.length > 0 && (
             <div className="block lg:hidden mb-10">
               <details className="group rounded-xl border border-border bg-background/50 overflow-hidden [&_summary::-webkit-details-marker]:hidden">
-                <summary className="flex cursor-pointer items-center justify-between px-4 py-3 font-mono text-sm text-foreground hover:bg-white/5 transition-colors">
+                <summary className="flex cursor-pointer items-center justify-between px-4 py-3 font-mono text-sm text-foreground hover:bg-foreground/5 transition-colors">
                   <div className="flex items-center gap-2 text-accent">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
