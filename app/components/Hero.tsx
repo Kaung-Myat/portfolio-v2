@@ -8,7 +8,7 @@ import {
 } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { profile } from "@/src/data/profile";
-import type { HeroCta } from "@/src/types";
+import type { GitHubStatsData, HeroCta } from "@/src/types";
 
 const container: Variants = {
   hidden: {},
@@ -139,17 +139,9 @@ function CtaButton({ cta }: { cta: HeroCta }) {
   );
 }
 
-interface GitHubStatsData {
-  contributions: number;
-  repos: number;
-  followers: number;
-  contributionDays: number[];
-  username: string;
-}
-
-function GitHubStats() {
-  const [data, setData] = useState<GitHubStatsData | null>(null);
-  const [loading, setLoading] = useState(true);
+function GitHubStats({ initialData }: { initialData: GitHubStatsData | null }) {
+  const [data, setData] = useState<GitHubStatsData | null>(initialData);
+  const [loading, setLoading] = useState(!initialData);
   const [failed, setFailed] = useState(false);
 
   const githubUrl =
@@ -157,13 +149,15 @@ function GitHubStats() {
   const username = githubUrl.replace("https://github.com/", "");
 
   useEffect(() => {
+    if (initialData) return;
+
     const controller = new AbortController();
 
     const fetchGitHubData = async () => {
       try {
         const res = await fetch("/api/github", {
           signal: controller.signal,
-          cache: "force-cache",
+          cache: "no-store",
         });
         const json = (await res.json()) as GitHubStatsData & {
           error?: string;
@@ -192,7 +186,7 @@ function GitHubStats() {
 
     fetchGitHubData();
     return () => controller.abort();
-  }, []);
+  }, [initialData]);
 
   const weeks = 52;
   const daysPerWeek = 7;
@@ -407,7 +401,11 @@ function ContactOptionsModal({
   );
 }
 
-export default function Hero() {
+export default function Hero({
+  initialGitHubStats,
+}: {
+  initialGitHubStats: GitHubStatsData | null;
+}) {
   const [contactModalOpen, setContactModalOpen] = useState(false);
 
   return (
@@ -476,7 +474,7 @@ export default function Hero() {
               })}
             </motion.div>
 
-            <GitHubStats />
+            <GitHubStats initialData={initialGitHubStats} />
           </div>
 
           <motion.div

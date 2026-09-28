@@ -44,3 +44,11 @@ export type ChatMessage = {
   role: "user" | "assistant";
   content: string;
 };
+
+export type GitHubStatsData = {
+  contributions: number;
+  repos: number;
+  followers: number;
+  contributionDays: number[];
+  username: string;
+};
