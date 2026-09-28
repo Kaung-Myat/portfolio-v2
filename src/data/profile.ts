@@ -16,15 +16,20 @@ export const profile: Profile = {
   ],
   heroCtas: [
     {
-      label: "Download Resume",
-      href: "/resume.pdf",
+      label: "View Projects",
+      href: "/projects",
       variant: "primary",
-      download: true,
     },
     {
       label: "Contact Me",
       href: "#contact",
       variant: "secondary",
+    },
+    {
+      label: "Download Resume",
+      href: "/resume.pdf",
+      variant: "text",
+      download: true,
     },
   ],
 };

@@ -81,6 +81,8 @@ export default function SiteFooter() {
             target="_blank"
             rel="noopener noreferrer"
             className="text-foreground hover:text-accent transition-colors"
+            data-analytics-event="outbound_click"
+            data-analytics-label="Footer LinkedIn"
           >
             {profile.name}
           </a>
@@ -98,6 +100,8 @@ export default function SiteFooter() {
                 rel="noopener noreferrer"
                 className="text-muted hover:text-accent transition-colors"
                 aria-label={social.label}
+                data-analytics-event="outbound_click"
+                data-analytics-label={`Footer ${social.label}`}
               >
                 <Icon />
               </a>

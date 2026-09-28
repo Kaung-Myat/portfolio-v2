@@ -80,6 +80,8 @@ export default function CopyLinkButton({
         type="button"
         onClick={copy}
         aria-label={ariaLabel ?? (copied ? "Link copied" : "Copy link")}
+        data-analytics-event="share_link"
+        data-analytics-label={url ?? "current page"}
         className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-muted hover:text-accent transition-colors ${className ?? ""}`}
       >
         {copied ? <CheckIcon /> : <ClipboardIcon />}
@@ -92,6 +94,8 @@ export default function CopyLinkButton({
       type="button"
       onClick={copy}
       aria-label={ariaLabel ?? (copied ? "Link copied" : "Copy link")}
+      data-analytics-event="share_link"
+      data-analytics-label={url ?? "current page"}
       className={`inline-flex items-center gap-1.5 rounded-full font-mono text-xs text-muted hover:text-accent transition-colors ${className ?? ""}`}
     >
       {copied ? <CheckIcon /> : <ClipboardIcon />}

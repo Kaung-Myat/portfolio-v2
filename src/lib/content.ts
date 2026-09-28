@@ -17,6 +17,11 @@ export interface ProjectFrontmatter {
   status: ProjectStatus;
   featured: boolean;
   cover?: string;
+  role: string;
+  problem?: string;
+  solution?: string;
+  outcome?: string;
+  live?: string;
 }
 
 export interface BlogFrontmatter {
@@ -73,6 +78,11 @@ export function getProjects(): ContentFile<ProjectFrontmatter>[] {
         status: (data.status as ProjectStatus) ?? "completed",
         featured: Boolean(data.featured),
         cover: data.cover ? String(data.cover) : undefined,
+        role: data.role ? String(data.role) : "Independent developer",
+        problem: data.problem ? String(data.problem) : undefined,
+        solution: data.solution ? String(data.solution) : undefined,
+        outcome: data.outcome ? String(data.outcome) : undefined,
+        live: data.live ? String(data.live) : undefined,
       };
       return { frontmatter, content };
     })
@@ -97,6 +107,11 @@ export function getProject(slug: string): ContentFile<ProjectFrontmatter> {
     status: (data.status as ProjectStatus) ?? "completed",
     featured: Boolean(data.featured),
     cover: data.cover ? String(data.cover) : undefined,
+    role: data.role ? String(data.role) : "Independent developer",
+    problem: data.problem ? String(data.problem) : undefined,
+    solution: data.solution ? String(data.solution) : undefined,
+    outcome: data.outcome ? String(data.outcome) : undefined,
+    live: data.live ? String(data.live) : undefined,
   };
   return { frontmatter, content };
 }

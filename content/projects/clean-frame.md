@@ -9,9 +9,11 @@ github: https://github.com/Kaung-Myat/clean_frame
 status: active
 featured: true
 cover: /images/projects/clean-frame.png
+role: Creator & maintainer
+problem: Starting a production Flutter app with Clean Architecture requires repetitive setup across data, domain, presentation, routing, networking, and testing layers.
+solution: A Dart CLI that generates a structured Flutter project from a versioned starter template and configures the application name and organisation automatically.
+outcome: Creates a production-ready Clean Architecture foundation with one command, reducing setup work and keeping project structure consistent.
 ---
-
-# clean_frame
 
 A CLI tool to scaffold Flutter projects with Clean Architecture and Riverpod DI.
 

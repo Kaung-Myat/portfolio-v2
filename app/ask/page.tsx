@@ -1,10 +1,12 @@
 import AskChat from "@/app/components/AskChat";
+import { createPageMetadata } from "@/src/lib/site";
 
-export const metadata = {
-  title: "Ask AI · Kaung Mrat Thu",
+export const metadata = createPageMetadata({
+  title: "Ask AI",
   description:
     "Chat with an AI assistant that answers questions about Kaung Mrat Thu.",
-};
+  path: "/ask",
+});
 
 export default function AskPage() {
   return (

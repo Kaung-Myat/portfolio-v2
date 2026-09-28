@@ -9,6 +9,10 @@ github: https://github.com/Kaung-Myat/g_tester
 status: active
 featured: true
 cover: /images/projects/g-tester.png
+role: Creator & maintainer
+problem: Creating repetitive unit-test files for a growing Flutter codebase takes time and makes it easier to leave important classes untested.
+solution: A Dart CLI that scans a project's lib structure and generates either lightweight test skeletons or AI-assisted test drafts.
+outcome: Produces an organised test starting point from the existing code structure so developers can focus on meaningful assertions and edge cases.
 ---
 
 g_tester is a command-line tool that automatically generates Dart/Flutter unit test files from your project's lib/ structure. It supports both basic test skeletons and AI-powered test generation using Gemini for business logic, services, and utility classes.

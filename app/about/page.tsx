@@ -1,21 +1,31 @@
-import Image from "next/image";
+import type { IconType } from "react-icons";
+import {
+  SiAndroid,
+  SiDart,
+  SiFirebase,
+  SiFlutter,
+  SiKotlin,
+  SiSupabase,
+} from "react-icons/si";
 import MDXContent from "@/app/components/MDXContent";
 import { getAbout } from "@/src/lib/content";
 import { profile } from "@/src/data/profile";
+import { createPageMetadata } from "@/src/lib/site";
 
-export const metadata = {
-  title: "About · Kaung Mrat Thu",
+export const metadata = createPageMetadata({
+  title: "About",
   description:
     "About Kaung Mrat Thu — Frontend & Mobile Developer at Brainwave Data.",
-};
+  path: "/about",
+});
 
-const SKILLS = [
-  { name: "Flutter", icon: "flutter.png" },
-  { name: "Dart", icon: "dart.png" },
-  { name: "Kotlin", icon: "kotlin.png" },
-  { name: "Android", icon: "android.png" },
-  { name: "Firebase", icon: "firebase.png" },
-  { name: "Supabase", icon: "supabase.png" },
+const SKILLS: Array<{ name: string; Icon: IconType; color: string }> = [
+  { name: "Flutter", Icon: SiFlutter, color: "#02569B" },
+  { name: "Dart", Icon: SiDart, color: "#0175C2" },
+  { name: "Kotlin", Icon: SiKotlin, color: "#7F52FF" },
+  { name: "Android", Icon: SiAndroid, color: "#3DDC84" },
+  { name: "Firebase", Icon: SiFirebase, color: "#FF9100" },
+  { name: "Supabase", Icon: SiSupabase, color: "#3FCF8E" },
 ];
 
 function GitHubIcon() {
@@ -137,20 +147,21 @@ export default function AboutPage() {
         </section>
 
         <section className="mb-12">
-          <h2 className="mb-4 font-mono text-xs text-accent">{"// skills"}</h2>
-          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-            {SKILLS.map((skill) => (
+          <h2 className="mb-5 font-mono text-xs text-accent">{"// skills"}</h2>
+          <ul className="grid grid-cols-2 border-b border-border sm:grid-cols-3">
+            {SKILLS.map((skill, index) => (
               <li
                 key={skill.name}
-                className="flex min-w-0 items-center justify-center gap-2 rounded-lg border border-border bg-surface/40 px-2 py-2.5 text-center font-mono text-xs text-foreground sm:px-3 sm:text-sm"
+                className="flex min-w-0 items-center gap-3 border-t border-border py-4 pr-3 font-mono text-xs text-foreground sm:text-sm"
               >
-                <span className="w-5 h-5 relative flex-shrink-0">
-                  <Image
-                    src={`/images/skills/${skill.icon}`}
-                    alt={skill.name}
-                    fill
-                    sizes="20px"
-                    className="object-contain"
+                <span className="w-5 shrink-0 text-[10px] text-muted/60">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span className="grid h-6 w-6 shrink-0 place-items-center">
+                  <skill.Icon
+                    aria-hidden="true"
+                    className="h-[18px] w-[18px]"
+                    style={{ color: skill.color }}
                   />
                 </span>
                 {skill.name}
@@ -160,17 +171,20 @@ export default function AboutPage() {
         </section>
 
         <section>
-          <h2 className="mb-4 font-mono text-xs text-accent">{"// elsewhere"}</h2>
-          <ul className="flex flex-wrap gap-2">
+          <h2 className="mb-5 font-mono text-xs text-accent">{"// elsewhere"}</h2>
+          <ul className="grid border-b border-border sm:grid-cols-2 sm:gap-x-8">
             <li>
               <a
                 href={frontmatter.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm text-foreground hover:border-accent hover:text-accent transition-colors"
+                data-analytics-event="outbound_click"
+                data-analytics-label="About GitHub"
+                className="group flex min-h-14 items-center gap-3 border-t border-border text-sm text-foreground transition-colors hover:text-accent"
               >
                 <GitHubIcon />
-                GitHub
+                <span>GitHub</span>
+                <span className="ml-auto transition-transform group-hover:translate-x-1" aria-hidden="true">↗</span>
               </a>
             </li>
             <li>
@@ -178,19 +192,25 @@ export default function AboutPage() {
                 href={frontmatter.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm text-foreground hover:border-accent hover:text-accent transition-colors"
+                data-analytics-event="outbound_click"
+                data-analytics-label="About Facebook"
+                className="group flex min-h-14 items-center gap-3 border-t border-border text-sm text-foreground transition-colors hover:text-accent"
               >
                 <FacebookIcon />
-                Facebook
+                <span>Facebook</span>
+                <span className="ml-auto transition-transform group-hover:translate-x-1" aria-hidden="true">↗</span>
               </a>
             </li>
             <li>
               <a
                 href={`mailto:${frontmatter.email}`}
-                className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm text-foreground hover:border-accent hover:text-accent transition-colors"
+                data-analytics-event="contact_method"
+                data-analytics-label="About email"
+                className="group flex min-h-14 items-center gap-3 border-t border-border text-sm text-foreground transition-colors hover:text-accent"
               >
                 <MailIcon />
-                Email
+                <span>Email</span>
+                <span className="ml-auto transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
               </a>
             </li>
             {profile.socials
@@ -201,10 +221,13 @@ export default function AboutPage() {
                     href={s.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm text-foreground hover:border-accent hover:text-accent transition-colors"
+                    data-analytics-event="outbound_click"
+                    data-analytics-label={`About ${s.label}`}
+                    className="group flex min-h-14 items-center gap-3 border-t border-border text-sm text-foreground transition-colors hover:text-accent"
                   >
                     {s.label === "LinkedIn" ? <LinkedInIcon /> : <YouTubeIcon />}
-                    {s.label}
+                    <span>{s.label}</span>
+                    <span className="ml-auto transition-transform group-hover:translate-x-1" aria-hidden="true">↗</span>
                   </a>
                 </li>
               ))}

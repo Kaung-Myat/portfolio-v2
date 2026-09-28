@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import ProjectCover from "@/app/components/ProjectCover";
 import type { ProjectFrontmatter } from "@/src/lib/content";
 
 const FILTERS = ["All", "Flutter", "Web", "Open Source"] as const;
@@ -35,53 +36,24 @@ function PubDevIcon() {
 }
 
 function StatusBadge({ status }: { status: ProjectFrontmatter["status"] }) {
-  const styles =
-    status === "active"
-      ? "bg-accent/15 text-accent"
-      : status === "in-progress"
-        ? "bg-yellow-500/15 text-yellow-400"
-        : "bg-surface text-muted";
   const label =
     status === "in-progress"
       ? "In Progress"
       : status[0].toUpperCase() + status.slice(1);
   return (
-    <span
-      className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${styles}`}
-    >
+    <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+      <span
+        aria-hidden="true"
+        className={`h-1.5 w-1.5 rounded-full ${
+          status === "active"
+            ? "bg-accent"
+            : status === "in-progress"
+              ? "bg-yellow-400"
+              : "bg-muted"
+        }`}
+      />
       {label}
     </span>
-  );
-}
-
-function CoverPlaceholder({
-  title,
-  cover,
-}: {
-  title: string;
-  cover?: string;
-}) {
-  if (cover) {
-    return (
-      <div
-        className="relative aspect-[16/9] w-full overflow-hidden rounded-lg border border-border bg-surface"
-        style={{
-          backgroundImage: `url(${cover})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent" />
-      </div>
-    );
-  }
-  return (
-    <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg border border-border bg-gradient-to-br from-surface to-background flex items-center justify-center">
-      <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent" />
-      <span className="relative font-mono text-3xl font-semibold text-foreground/30">
-        {title[0]}
-      </span>
-    </div>
   );
 }
 
@@ -105,17 +77,19 @@ export default function ProjectGrid({
 
   return (
     <>
-      <ul className="mb-8 flex flex-wrap gap-2 font-mono text-xs">
+      <ul className="mb-8 flex gap-5 overflow-x-auto border-b border-border font-mono text-xs sm:gap-7">
         {FILTERS.map((f) => (
-          <li key={f}>
+          <li key={f} className="shrink-0">
             <button
               type="button"
               onClick={() => setFilter(f)}
+              data-analytics-event="project_filter"
+              data-analytics-label={f}
               aria-pressed={filter === f}
-              className={`rounded-full border px-3 py-1.5 transition-colors ${
+              className={`relative min-h-11 pb-3 transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-accent after:transition-opacity ${
                 filter === f
-                  ? "border-accent bg-accent/15 text-accent"
-                  : "border-border bg-surface/60 text-muted hover:text-foreground hover:border-foreground/30"
+                  ? "text-accent after:opacity-100"
+                  : "text-muted after:opacity-0 hover:text-foreground"
               }`}
             >
               {f}
@@ -127,79 +101,104 @@ export default function ProjectGrid({
       {filtered.length === 0 ? (
         <p className="text-muted">No projects match this filter yet.</p>
       ) : (
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
-          {filtered.map((p) => (
+        <ol className="border-b border-border">
+          {filtered.map((p, index) => (
             <li
               key={p.slug}
-              className="group relative min-w-0 rounded-2xl border border-border bg-surface/30 p-4 transition-colors hover:border-accent/40 sm:p-5"
+              className="group border-t border-border py-8 sm:py-10"
             >
-              <Link
-                href={`/projects/${p.slug}`}
-                className="absolute inset-0 z-10"
-                aria-label={`Read about ${p.title}`}
-              />
+              <article className="grid gap-6 md:grid-cols-12 md:items-center md:gap-10">
+                <div className="md:col-span-7">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <span className="font-mono text-[10px] text-muted/60">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <StatusBadge status={p.status} />
+                    {p.featured && (
+                      <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-accent">
+                        Selected
+                      </span>
+                    )}
+                  </div>
 
-              <CoverPlaceholder title={p.title} cover={p.cover} />
-
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <h2 className="min-w-0 text-base font-semibold tracking-tight text-foreground sm:text-lg">
-                  {p.title}
-                </h2>
-                {p.featured && (
-                  <span className="rounded-full bg-accent/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-accent">
-                    Featured
-                  </span>
-                )}
-                <span className="ml-auto shrink-0">
-                  <StatusBadge status={p.status} />
-                </span>
-              </div>
-
-              <p className="mt-2 text-sm leading-relaxed text-muted line-clamp-3">
-                {p.description}
-              </p>
-
-              <ul className="mt-3 flex flex-wrap gap-1.5 font-mono text-[11px] text-muted">
-                {p.tags.slice(0, 5).map((t) => (
-                  <li
-                    key={t}
-                    className="rounded-full border border-border px-2 py-0.5"
-                  >
-                    {t}
-                  </li>
-                ))}
-              </ul>
-
-              {(p.github || p.pubdev) && (
-                <div className="mt-4 flex items-center gap-3 text-muted">
-                  {p.github && (
-                    <a
-                      href={p.github}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="relative z-20 inline-flex items-center gap-1.5 text-xs hover:text-accent transition-colors"
-                      onClick={(e) => e.stopPropagation()}
+                  <h2 className="mt-4 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                    <Link
+                      href={`/projects/${p.slug}`}
+                      data-analytics-event="project_open"
+                      data-analytics-label={p.slug}
+                      className="transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                     >
-                      <GitHubIcon />
-                      GitHub
-                    </a>
-                  )}
-                  {p.pubdev && (
-                    <a
-                      href={p.pubdev}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="relative z-20 inline-flex items-center gap-1.5 text-xs hover:text-accent transition-colors"
-                      onClick={(e) => e.stopPropagation()}
+                      {p.title}
+                    </Link>
+                  </h2>
+
+                  <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
+                    {p.outcome ?? p.description}
+                  </p>
+
+                  <ul className="mt-4 flex flex-wrap gap-x-2 gap-y-1 font-mono text-[10px] text-muted sm:text-[11px]">
+                    {p.tags.slice(0, 5).map((t) => (
+                      <li
+                        key={t}
+                        className="before:mr-2 before:text-border before:content-['/'] first:before:hidden"
+                      >
+                        {t}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-6 flex flex-wrap items-center gap-5 text-muted">
+                    <Link
+                      href={`/projects/${p.slug}`}
+                      data-analytics-event="project_open"
+                      data-analytics-label={p.slug}
+                      className="inline-flex min-h-9 items-center gap-2 text-sm font-medium text-foreground transition-colors hover:text-accent"
                     >
-                      <PubDevIcon />
-                    </a>
-                  )}
+                      Read case study <span aria-hidden="true">→</span>
+                    </Link>
+                    {p.github && (
+                      <a
+                        href={p.github}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex min-h-9 items-center gap-1.5 text-xs transition-colors hover:text-accent"
+                        data-analytics-event="outbound_click"
+                        data-analytics-label={`${p.slug} GitHub`}
+                      >
+                        <GitHubIcon /> GitHub
+                      </a>
+                    )}
+                    {p.pubdev && (
+                      <a
+                        href={p.pubdev}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex min-h-9 items-center gap-1.5 text-xs transition-colors hover:text-accent"
+                        data-analytics-event="outbound_click"
+                        data-analytics-label={`${p.slug} pub.dev`}
+                      >
+                        <PubDevIcon />
+                      </a>
+                    )}
+                  </div>
                 </div>
-              )}
+
+                <Link
+                  href={`/projects/${p.slug}`}
+                  data-analytics-event="project_open"
+                  data-analytics-label={p.slug}
+                  className="md:col-span-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+                >
+                  <ProjectCover
+                    title={p.title}
+                    cover={p.cover}
+                    sizes="(max-width: 767px) calc(100vw - 2.5rem), 40vw"
+                  />
+                </Link>
+              </article>
             </li>
           ))}
-        </ul>
+        </ol>
       )}
     </>
   );

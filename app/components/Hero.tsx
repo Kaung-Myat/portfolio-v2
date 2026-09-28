@@ -121,16 +121,24 @@ function TypingHeadline({
 
 function CtaButton({ cta }: { cta: HeroCta }) {
   const base =
-    "inline-flex h-11 items-center justify-center rounded-full px-6 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+    "inline-flex h-11 items-center justify-center rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  const layout =
+    cta.variant === "text"
+      ? "col-span-2 justify-self-center px-3 sm:col-auto"
+      : "w-full px-3 sm:w-auto sm:px-6";
   const styles =
     cta.variant === "primary"
       ? "bg-accent text-background hover:bg-accent/90"
-      : "border border-border text-foreground hover:bg-surface hover:border-foreground/20";
+      : cta.variant === "secondary"
+        ? "border border-border text-foreground hover:bg-surface hover:border-foreground/20"
+        : "text-muted underline decoration-border underline-offset-4 hover:text-accent hover:decoration-accent";
 
   return (
     <a
       href={cta.href}
-      className={`${base} ${styles}`}
+      className={`${base} ${layout} ${styles}`}
+      data-analytics-event={cta.download ? "resume_download" : "cta_click"}
+      data-analytics-label={cta.label}
       {...(cta.download ? { download: true } : {})}
       {...(cta.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
     >
@@ -227,30 +235,40 @@ function GitHubStats({ initialData }: { initialData: GitHubStatsData | null }) {
     );
   }
 
+  if (failed && !data) return null;
+
   return (
     <motion.div variants={line} className="pt-0">
-      <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <a
           href={githubUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="shrink-0 whitespace-nowrap font-mono text-xs text-accent hover:underline"
+          data-analytics-event="outbound_click"
+          data-analytics-label="GitHub contribution profile"
         >
           @{data?.username || username}
         </a>
-        <span className="font-mono text-xs text-muted">contributions in the last year</span>
+        <span className="font-mono text-[10px] text-muted sm:text-xs">
+          <span className="sm:hidden">last 26 weeks</span>
+          <span className="hidden sm:inline">contributions in the last year</span>
+        </span>
       </div>
 
-      <div className="mb-4 flex gap-1 overflow-x-auto pb-2" aria-hidden="true">
+      <div className="flex gap-0.5 overflow-hidden pb-1 sm:gap-1" aria-hidden="true">
         {Array.from({ length: weeks }).map((_, weekIndex) => (
-          <div key={weekIndex} className="flex flex-col gap-0.5">
+          <div
+            key={weekIndex}
+            className={`${weekIndex < 26 ? "hidden sm:flex" : "flex"} flex-col gap-0.5`}
+          >
             {Array.from({ length: daysPerWeek }).map((_, dayIndex) => {
               const index = weekIndex * daysPerWeek + dayIndex;
               const level = getLevel(contributionDays[index] || 0);
               return (
                 <div
                   key={dayIndex}
-                  className={`h-2.5 w-2.5 rounded-sm ${levels[level]}`}
+                  className={`h-2 w-2 rounded-[2px] sm:h-2.5 sm:w-2.5 sm:rounded-sm ${levels[level]}`}
                   title={`${contributionDays[index] || 0} contributions`}
                 />
               );
@@ -259,26 +277,48 @@ function GitHubStats({ initialData }: { initialData: GitHubStatsData | null }) {
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm" aria-live="polite">
-        <div className="flex items-center gap-1.5">
-          <span className="font-mono text-accent">{data?.contributions ?? "—"}</span>
-          <span className="text-muted">contributions</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="font-mono text-accent">{data?.repos ?? "—"}</span>
-          <span className="text-muted">public repos</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="font-mono text-accent">{data?.followers ?? "—"}</span>
-          <span className="text-muted">followers</span>
-        </div>
-      </div>
+      <div className="mt-4 border-y border-border py-3 sm:flex sm:items-center sm:justify-between sm:gap-6">
+        <dl
+          className="grid grid-cols-3 font-mono sm:flex sm:items-baseline"
+          aria-live="polite"
+        >
+          <div className="flex min-w-0 flex-col border-r border-border px-3 text-center first:pl-0 sm:flex-row sm:items-baseline sm:gap-2 sm:px-6 sm:text-left sm:first:pl-0">
+            <dt className="order-2 mt-1 truncate text-[9px] uppercase tracking-[0.08em] text-muted sm:mt-0 sm:text-[10px]">
+              contributions
+            </dt>
+            <dd className="order-1 text-lg font-semibold tracking-tight text-foreground">
+              {data?.contributions ?? "—"}
+            </dd>
+          </div>
+          <div className="flex min-w-0 flex-col border-r border-border px-3 text-center sm:flex-row sm:items-baseline sm:gap-2 sm:px-6 sm:text-left">
+            <dt className="order-2 mt-1 truncate text-[9px] uppercase tracking-[0.08em] text-muted sm:mt-0 sm:text-[10px]">
+              public repos
+            </dt>
+            <dd className="order-1 text-lg font-semibold tracking-tight text-foreground">
+              {data?.repos ?? "—"}
+            </dd>
+          </div>
+          <div className="flex min-w-0 flex-col px-3 text-center sm:flex-row sm:items-baseline sm:gap-2 sm:px-6 sm:text-left">
+            <dt className="order-2 mt-1 truncate text-[9px] uppercase tracking-[0.08em] text-muted sm:mt-0 sm:text-[10px]">
+              followers
+            </dt>
+            <dd className="order-1 text-lg font-semibold tracking-tight text-foreground">
+              {data?.followers ?? "—"}
+            </dd>
+          </div>
+        </dl>
 
-      {failed && (
-        <p className="mt-2 font-mono text-[11px] text-muted">
-          GitHub stats are temporarily unavailable.
-        </p>
-      )}
+        <a
+          href={githubUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex min-h-8 items-center font-mono text-[10px] text-muted transition-colors hover:text-accent sm:mt-0 sm:shrink-0 sm:text-[11px]"
+          data-analytics-event="outbound_click"
+          data-analytics-label="GitHub full profile"
+        >
+          Open GitHub profile ↗
+        </a>
+      </div>
     </motion.div>
   );
 }
@@ -385,6 +425,8 @@ function ContactOptionsModal({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-4 rounded-xl border border-border px-4 py-3 text-foreground hover:border-accent hover:bg-accent/5 transition-colors"
+                    data-analytics-event="contact_method"
+                    data-analytics-label={option.label}
                   >
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10 text-accent">
                       <Icon />
@@ -455,7 +497,7 @@ export default function Hero({
 
             <motion.div
               variants={line}
-              className="flex flex-col sm:flex-row gap-3 pt-2"
+              className="grid grid-cols-2 items-center gap-3 pt-2 sm:flex sm:flex-wrap"
             >
               {profile.heroCtas.map((cta) => {
                 if (cta.label === "Contact Me") {
@@ -464,7 +506,9 @@ export default function Hero({
                       key={cta.label}
                       type="button"
                       onClick={() => setContactModalOpen(true)}
-                      className="inline-flex h-11 items-center justify-center rounded-full px-6 text-sm font-medium border border-border text-foreground hover:bg-surface hover:border-foreground/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      data-analytics-event="contact_open"
+                      data-analytics-label="Hero contact button"
+                      className="inline-flex h-11 w-full items-center justify-center rounded-full border border-border px-3 text-sm font-medium text-foreground transition-colors hover:border-foreground/20 hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-auto sm:px-6"
                     >
                       {cta.label}
                     </button>

@@ -1,14 +1,18 @@
 ---
 title: excel_to_arb
 slug: excel-to-arb
-description: A command-line tool that simplifies localization management by converting Excel spreadsheets (.xlsx) into Flutter's ARB (Application Resource Bundle) format.y hostels in real-time using GPS and interactive maps.
+description: A command-line tool that simplifies localization management by converting Excel spreadsheets into Flutter ARB files.
 tags: [Dart, Open Source, pub.dev]
 date: "2025-06-17"
-pubdev: https://pub.dev/packages/g_tester
+pubdev: https://pub.dev/packages/excel_to_arb
 github: https://github.com/Kaung-Myat/excel_to_arb
 status: active
 featured: true
 cover: /images/projects/excel-to-arb.png
+role: Creator & maintainer
+problem: Maintaining the same translation keys and values manually across spreadsheets and multiple ARB files is repetitive and error-prone.
+solution: A Dart CLI that reads a structured Excel workbook and generates Flutter-compatible ARB files for each language.
+outcome: Converts localisation spreadsheets into ready-to-use ARB resources through a repeatable command-line workflow.
 ---
 
 ## Features

@@ -3,8 +3,10 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import CopyLinkButton from "@/app/components/CopyLinkButton";
+import JsonLd from "@/app/components/JsonLd";
 import MDXContent from "@/app/components/MDXContent";
 import { getBlogPost, getBlogPosts, extractHeadings, type TocHeading } from "@/src/lib/content";
+import { absoluteUrl } from "@/src/lib/site";
 
 type Params = Promise<{ slug: string }>;
 
@@ -20,9 +22,29 @@ export async function generateMetadata({
   const { slug } = await params;
   try {
     const { frontmatter } = getBlogPost(slug);
+    const title = `${frontmatter.title} · Kaung Mrat Thu`;
+    const url = absoluteUrl(`/blog/${frontmatter.slug}`);
+    const image = frontmatter.cover
+      ? absoluteUrl(frontmatter.cover)
+      : undefined;
     return {
-      title: `${frontmatter.title} · Kaung Mrat Thu`,
+      title: frontmatter.title,
       description: frontmatter.description,
+      alternates: { canonical: url },
+      openGraph: {
+        type: "article",
+        title,
+        description: frontmatter.description,
+        url,
+        publishedTime: new Date(frontmatter.date).toISOString(),
+        images: image ? [{ url: image, alt: frontmatter.title }] : [],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description: frontmatter.description,
+        images: image ? [image] : [],
+      },
     };
   } catch {
     return { title: "Post not found" };
@@ -111,9 +133,26 @@ export default async function BlogPostPage({ params }: { params: Params }) {
   }
   const { frontmatter, content } = post;
   const headings = extractHeadings(content);
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: frontmatter.title,
+    description: frontmatter.description,
+    datePublished: new Date(frontmatter.date).toISOString(),
+    mainEntityOfPage: absoluteUrl(`/blog/${frontmatter.slug}`),
+    ...(frontmatter.cover
+      ? { image: absoluteUrl(frontmatter.cover) }
+      : {}),
+    author: {
+      "@type": "Person",
+      "@id": `${absoluteUrl("/")}#person`,
+      name: "Kaung Mrat Thu",
+    },
+  };
 
   return (
     <main className="page-gutter flex w-full flex-1 flex-col pb-16 pt-24 sm:py-24">
+      <JsonLd data={articleJsonLd} />
       <div className="mx-auto w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-8">
         <div>
           <Link
@@ -149,11 +188,11 @@ export default async function BlogPostPage({ params }: { params: Params }) {
             <p className="mt-3 text-base leading-relaxed text-muted sm:text-lg">
               {frontmatter.description}
             </p>
-            <ul className="mt-5 flex flex-wrap gap-1.5 font-mono text-[11px] text-muted">
+            <ul className="mt-5 flex flex-wrap gap-x-2 gap-y-1 font-mono text-[11px] text-muted">
               {frontmatter.tags.map((t) => (
                 <li
                   key={t}
-                  className="rounded-full border border-border px-2.5 py-0.5"
+                  className="before:mr-2 before:text-border before:content-['/'] first:before:hidden"
                 >
                   {t}
                 </li>

@@ -1,11 +1,13 @@
 import ProjectGrid from "@/app/components/ProjectGrid";
 import { getProjects } from "@/src/lib/content";
+import { createPageMetadata } from "@/src/lib/site";
 
-export const metadata = {
-  title: "Projects · Kaung Mrat Thu",
+export const metadata = createPageMetadata({
+  title: "Projects",
   description:
     "Selected projects by Kaung Mrat Thu — Flutter apps, open-source packages, and web tools.",
-};
+  path: "/projects",
+});
 
 export default function ProjectsPage() {
   const projects = getProjects().map((p) => p.frontmatter);

@@ -183,6 +183,8 @@ export default function AskChat() {
                     type="button"
                     onClick={() => ask(s)}
                     disabled={busy}
+                    data-analytics-event="ask_suggestion"
+                    data-analytics-label="preset question"
                     className="rounded-full border border-border bg-surface/60 px-3 py-1.5 text-xs text-foreground hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
                   >
                     {s}
@@ -203,6 +205,8 @@ export default function AskChat() {
             <button
               type="submit"
               disabled={busy || !input.trim()}
+              data-analytics-event="ask_submit"
+              data-analytics-label="custom question"
               className="shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-40 sm:px-5"
             >
               Send

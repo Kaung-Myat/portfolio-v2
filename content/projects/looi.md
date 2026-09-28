@@ -8,6 +8,10 @@ github: https://github.com/Kaung-Myat/LOOI_ROBOT_Flutter
 status: active
 featured: true
 cover: /images/projects/looi.jpg
+role: Flutter developer
+problem: Recreating an expressive AI companion requires voice input, generated responses, and animated character states to feel like one coherent interaction.
+solution: A Flutter recreation combining speech interaction, AI text responses, and state-driven facial animations.
+outcome: Demonstrates how conversational input and expressive motion can be composed into a playful cross-platform Flutter experience.
 ---
 
 This is a recreation of the Looi AI assistant, built entirely in Flutter. It's a fun project that features voice interaction, AI text responses, and some cool facial animations.

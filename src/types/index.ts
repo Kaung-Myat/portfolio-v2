@@ -6,7 +6,7 @@ export type SocialLink = {
 export type HeroCta = {
   label: string;
   href: string;
-  variant: "primary" | "secondary";
+  variant: "primary" | "secondary" | "text";
   download?: boolean;
   external?: boolean;
 };

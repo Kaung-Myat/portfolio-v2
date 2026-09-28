@@ -8,9 +8,12 @@ github: https://github.com/Kaung-Myat/myancode-docs
 status: active
 featured: true
 cover: /images/projects/myan-code.png
+role: Language & tooling developer
+problem: Programming concepts are harder to approach when beginners must learn both the logic and an unfamiliar English-based syntax at the same time.
+solution: A Burmese programming language with a six-stage offline NLP pipeline, command-line runner, and browser-based IDE.
+outcome: Turns Burmese source code into executable JavaScript locally, giving beginners a more familiar path into programming concepts.
+live: https://myancode.xyz
 ---
-
-# MyanCode · မြန်မာကုဒ်
 
 > A Burmese natural language programming language for beginners.  
 > Write code in Myanmar script — MyanCode understands it, transpiles it to JavaScript, and runs it.

@@ -2,14 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import CopyLinkButton from "@/app/components/CopyLinkButton";
 import { getBlogPosts } from "@/src/lib/content";
+import { createPageMetadata } from "@/src/lib/site";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Blog · Kaung Mrat Thu",
+export const metadata = createPageMetadata({
+  title: "Blog",
   description:
     "Notes and write-ups by Kaung Mrat Thu on Flutter, Dart, AI tooling, and shipping mobile apps.",
-};
+  path: "/blog",
+});
 
 const POSTS_PER_PAGE = 10;
 
@@ -105,7 +107,7 @@ export default async function BlogPage({ searchParams }: PageProps) {
             {paginatedPosts.map(({ frontmatter }) => (
               <li
                 key={frontmatter.slug}
-                className="group relative rounded-lg transition-colors hover:bg-surface/30"
+                className="group relative"
               >
                 <Link
                   href={`/blog/${frontmatter.slug}`}
@@ -135,11 +137,11 @@ export default async function BlogPage({ searchParams }: PageProps) {
                     <p className="mt-1.5 text-sm leading-relaxed text-muted">
                       {frontmatter.description}
                     </p>
-                    <ul className="mt-3 flex flex-wrap gap-1.5 font-mono text-[11px] text-muted">
+                    <ul className="mt-3 flex flex-wrap gap-x-2 gap-y-1 font-mono text-[11px] text-muted">
                       {frontmatter.tags.map((t) => (
                         <li
                           key={t}
-                          className="rounded-full border border-border px-2 py-0.5"
+                          className="before:mr-2 before:text-border before:content-['/'] first:before:hidden"
                         >
                           {t}
                         </li>

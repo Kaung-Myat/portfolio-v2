@@ -1,11 +1,13 @@
 import { experience } from "@/src/data/experience";
 import { getAbout, getProjects } from "@/src/lib/content";
+import { createPageMetadata } from "@/src/lib/site";
 
-export const metadata = {
-  title: "Resume · Kaung Mrat Thu",
+export const metadata = createPageMetadata({
+  title: "Resume",
   description:
     "Resume for Kaung Mrat Thu — Frontend & Mobile Developer at Brainwave Data.",
-};
+  path: "/resume",
+});
 
 const SKILL_GROUPS: { label: string; items: string[] }[] = [
   { label: "Mobile", items: ["Flutter", "Dart", "Kotlin", "Android"] },
@@ -57,6 +59,8 @@ export default function ResumePage() {
           <a
             href="/resume.pdf"
             download
+            data-analytics-event="resume_download"
+            data-analytics-label="Resume page PDF"
             className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-accent text-background px-4 py-2 text-sm font-medium hover:bg-accent/90 transition-colors print:hidden"
           >
             <DownloadIcon />
