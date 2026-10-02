@@ -186,6 +186,16 @@ h3 {
   margin-block: 1.25rem;
   overflow-x: auto;
   padding: 1rem;
+  tab-size: 2;
+  white-space: pre;
+}
+
+.wordpress-content pre code {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  padding: 0;
 }
 
 .wordpress-content :not(pre) > code {

@@ -6,6 +6,7 @@ export const runtime = "nodejs";
 const WORDPRESS_SITE =
   process.env.WORDPRESS_SITE ?? "kaungmyatthuvercel.wordpress.com";
 const WORDPRESS_API_URL = `https://public-api.wordpress.com/wp/v2/sites/${WORDPRESS_SITE}`;
+const TELEGRAM_SUMMARY_MAX_LENGTH = 280;
 
 interface WordPressWebhookPost {
   id: number;
@@ -96,9 +97,18 @@ function escapeTelegramHtml(value: string) {
 function summarize(post: WordPressWebhookPost) {
   const excerpt =
     textFromHtml(post.excerpt.rendered) || textFromHtml(post.content.rendered);
-  return excerpt.length > 650
-    ? `${excerpt.slice(0, 647).trimEnd()}...`
-    : excerpt;
+  if (excerpt.length <= TELEGRAM_SUMMARY_MAX_LENGTH) return excerpt;
+
+  const candidate = excerpt
+    .slice(0, TELEGRAM_SUMMARY_MAX_LENGTH - 1)
+    .trimEnd();
+  const lastSpace = candidate.lastIndexOf(" ");
+  const shortened =
+    lastSpace >= Math.floor(TELEGRAM_SUMMARY_MAX_LENGTH * 0.7)
+      ? candidate.slice(0, lastSpace)
+      : candidate;
+
+  return `${shortened.trimEnd()}…`;
 }
 
 async function telegramRequest<T>(

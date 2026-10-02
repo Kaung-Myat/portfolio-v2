@@ -46,6 +46,7 @@ const WORDPRESS_SITE =
   process.env.WORDPRESS_SITE ?? "kaungmyatthuvercel.wordpress.com";
 const WORDPRESS_API_URL = `https://public-api.wordpress.com/wp/v2/sites/${WORDPRESS_SITE}`;
 const CACHE_SECONDS = 300;
+const DESCRIPTION_MAX_LENGTH = 180;
 
 function decodeHtml(value: string) {
   const namedEntities: Record<string, string> = {
@@ -84,6 +85,19 @@ function textFromHtml(value: string) {
   );
 }
 
+function truncateText(value: string, maxLength: number) {
+  if (value.length <= maxLength) return value;
+
+  const candidate = value.slice(0, maxLength - 1).trimEnd();
+  const lastSpace = candidate.lastIndexOf(" ");
+  const shortened =
+    lastSpace >= Math.floor(maxLength * 0.7)
+      ? candidate.slice(0, lastSpace)
+      : candidate;
+
+  return `${shortened.trimEnd()}…`;
+}
+
 function mapPost(post: WordPressPost): BlogPost {
   const terms = post._embedded?.["wp:term"]?.flat() ?? [];
   const tags = terms
@@ -95,7 +109,10 @@ function mapPost(post: WordPressPost): BlogPost {
     id: post.id,
     title: textFromHtml(post.title.rendered),
     slug: post.slug,
-    description: textFromHtml(post.excerpt.rendered),
+    description: truncateText(
+      textFromHtml(post.excerpt.rendered),
+      DESCRIPTION_MAX_LENGTH,
+    ),
     contentHtml: post.content.rendered,
     publishedAt: post.date_gmt ? `${post.date_gmt}Z` : post.date,
     modifiedAt: post.modified_gmt ? `${post.modified_gmt}Z` : post.modified,
