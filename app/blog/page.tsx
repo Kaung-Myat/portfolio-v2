@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CopyLinkButton from "@/app/components/CopyLinkButton";
-import { getBlogPosts } from "@/src/lib/content";
+import { getBlogPosts as getLocalBlogPosts } from "@/src/lib/content";
+import { getAllBlogPosts } from "@/src/lib/wordpress";
 import { createPageMetadata } from "@/src/lib/site";
-
-export const dynamic = "force-dynamic";
 
 export const metadata = createPageMetadata({
   title: "Blog",
@@ -66,18 +65,31 @@ interface PageProps {
 
 export default async function BlogPage({ searchParams }: PageProps) {
   const { page } = await searchParams;
-  const posts = getBlogPosts();
-  const totalPosts = posts.length;
+  const requestedPage = Number.parseInt(page || "1", 10);
+  const currentPage = Number.isFinite(requestedPage)
+    ? Math.max(1, requestedPage)
+    : 1;
+  const localPosts = getLocalBlogPosts().map(({ frontmatter }, index) => ({
+    id: -(index + 1),
+    title: frontmatter.title,
+    slug: frontmatter.slug,
+    description: frontmatter.description,
+    publishedAt: frontmatter.date,
+    tags: frontmatter.tags,
+  }));
+  const wordpressPosts = await getAllBlogPosts().catch(() => []);
+  const postsBySlug = new Map(localPosts.map((post) => [post.slug, post]));
+  for (const post of wordpressPosts) postsBySlug.set(post.slug, post);
+  const allPosts = [...postsBySlug.values()].sort(
+    (a, b) =>
+      new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+  );
+  const totalPosts = allPosts.length;
   const totalPages = Math.ceil(totalPosts / POSTS_PER_PAGE);
-
-  const currentPage = Math.min(Math.max(1, parseInt(page || "1", 10)), totalPages);
   const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
-  const endIndex = startIndex + POSTS_PER_PAGE;
-  const paginatedPosts = posts.slice(startIndex, endIndex);
+  const posts = allPosts.slice(startIndex, startIndex + POSTS_PER_PAGE);
 
-  if (paginatedPosts.length === 0) {
-    notFound();
-  }
+  if (currentPage > Math.max(totalPages, 1)) notFound();
 
   return (
     <main className="page-gutter flex w-full flex-1 flex-col pb-16 pt-24 sm:py-28">
@@ -100,45 +112,42 @@ export default async function BlogPage({ searchParams }: PageProps) {
           )}
         </header>
 
-        {paginatedPosts.length === 0 ? (
+        {posts.length === 0 ? (
           <p className="text-muted">Nothing posted yet — check back soon.</p>
         ) : (
           <ul className="divide-y divide-border">
-            {paginatedPosts.map(({ frontmatter }) => (
-              <li
-                key={frontmatter.slug}
-                className="group relative"
-              >
+            {posts.map((post) => (
+              <li key={post.id} className="group relative">
                 <Link
-                  href={`/blog/${frontmatter.slug}`}
+                  href={`/blog/${post.slug}`}
                   className="absolute inset-0 z-10"
-                  aria-label={`Read ${frontmatter.title}`}
+                  aria-label={`Read ${post.title}`}
                 />
                 <div className="flex flex-col gap-2 py-6 px-4 -mx-4 sm:flex-row sm:gap-8">
                   <time
-                    dateTime={frontmatter.date}
+                    dateTime={post.publishedAt}
                     className="shrink-0 font-mono text-xs text-muted sm:w-24 sm:pt-1"
                   >
-                    {formatDate(frontmatter.date)}
+                    {formatDate(post.publishedAt)}
                   </time>
                   <div className="flex-1">
                     <div className="flex items-start justify-between gap-3">
                       <h2 className="text-base font-medium tracking-tight text-foreground transition-colors group-hover:text-accent sm:text-lg">
-                        {frontmatter.title}
+                        {post.title}
                       </h2>
                       <div className="relative z-20 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
                         <CopyLinkButton
                           variant="icon"
-                          url={`/blog/${frontmatter.slug}`}
-                          ariaLabel={`Copy link to ${frontmatter.title}`}
+                          url={`/blog/${post.slug}`}
+                          ariaLabel={`Copy link to ${post.title}`}
                         />
                       </div>
                     </div>
                     <p className="mt-1.5 text-sm leading-relaxed text-muted">
-                      {frontmatter.description}
+                      {post.description}
                     </p>
                     <ul className="mt-3 flex flex-wrap gap-x-2 gap-y-1 font-mono text-[11px] text-muted">
-                      {frontmatter.tags.map((t) => (
+                      {post.tags.map((t) => (
                         <li
                           key={t}
                           className="before:mr-2 before:text-border before:content-['/'] first:before:hidden"

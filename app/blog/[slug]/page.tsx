@@ -5,14 +5,18 @@ import { notFound } from "next/navigation";
 import CopyLinkButton from "@/app/components/CopyLinkButton";
 import JsonLd from "@/app/components/JsonLd";
 import MDXContent from "@/app/components/MDXContent";
-import { getBlogPost, getBlogPosts, extractHeadings, type TocHeading } from "@/src/lib/content";
+import WordPressContent, {
+  prepareWordPressContent,
+} from "@/app/components/WordPressContent";
+import {
+  extractHeadings,
+  getBlogPost as getLocalBlogPost,
+  type TocHeading,
+} from "@/src/lib/content";
+import { getBlogPost as getWordPressBlogPost } from "@/src/lib/wordpress";
 import { absoluteUrl } from "@/src/lib/site";
 
 type Params = Promise<{ slug: string }>;
-
-export function generateStaticParams() {
-  return getBlogPosts().map((p) => ({ slug: p.frontmatter.slug }));
-}
 
 export async function generateMetadata({
   params,
@@ -21,28 +25,51 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   try {
-    const { frontmatter } = getBlogPost(slug);
-    const title = `${frontmatter.title} · Kaung Mrat Thu`;
-    const url = absoluteUrl(`/blog/${frontmatter.slug}`);
-    const image = frontmatter.cover
-      ? absoluteUrl(frontmatter.cover)
-      : undefined;
+    const wordpressPost = await getWordPressBlogPost(slug).catch(() => null);
+    const post = wordpressPost
+      ? {
+          title: wordpressPost.title,
+          slug: wordpressPost.slug,
+          description: wordpressPost.description,
+          publishedAt: wordpressPost.publishedAt,
+          modifiedAt: wordpressPost.modifiedAt,
+          cover: wordpressPost.cover,
+          coverAlt: wordpressPost.coverAlt,
+        }
+      : (() => {
+          const { frontmatter } = getLocalBlogPost(slug);
+          return {
+            title: frontmatter.title,
+            slug: frontmatter.slug,
+            description: frontmatter.description,
+            publishedAt: frontmatter.date,
+            modifiedAt: frontmatter.date,
+            cover: frontmatter.cover
+              ? absoluteUrl(frontmatter.cover)
+              : undefined,
+            coverAlt: frontmatter.title,
+          };
+        })();
+    const title = `${post.title} · Kaung Mrat Thu`;
+    const url = absoluteUrl(`/blog/${post.slug}`);
+    const image = post.cover;
     return {
-      title: frontmatter.title,
-      description: frontmatter.description,
+      title: post.title,
+      description: post.description,
       alternates: { canonical: url },
       openGraph: {
         type: "article",
         title,
-        description: frontmatter.description,
+        description: post.description,
         url,
-        publishedTime: new Date(frontmatter.date).toISOString(),
-        images: image ? [{ url: image, alt: frontmatter.title }] : [],
+        publishedTime: new Date(post.publishedAt).toISOString(),
+        modifiedTime: new Date(post.modifiedAt).toISOString(),
+        images: image ? [{ url: image, alt: post.coverAlt || post.title }] : [],
       },
       twitter: {
         card: "summary_large_image",
         title,
-        description: frontmatter.description,
+        description: post.description,
         images: image ? [image] : [],
       },
     };
@@ -59,7 +86,13 @@ function formatDate(iso: string) {
   });
 }
 
-function TableOfContents({ headings, isMobile }: { headings: TocHeading[], isMobile?: boolean }) {
+function TableOfContents({
+  headings,
+  isMobile,
+}: {
+  headings: TocHeading[];
+  isMobile?: boolean;
+}) {
   if (headings.length === 0) return null;
 
   const getH2sAndTheirH3s = () => {
@@ -91,8 +124,16 @@ function TableOfContents({ headings, isMobile }: { headings: TocHeading[], isMob
   if (h2sWithH3s.length === 0) return null;
 
   return (
-    <nav className={isMobile ? "max-h-[50vh] overflow-y-auto" : "p-4 rounded-lg border border-border bg-background max-h-[70vh] overflow-y-auto sticky top-28"}>
-      {!isMobile && <h2 className="font-mono text-xs text-accent mb-3">On this page</h2>}
+    <nav
+      className={
+        isMobile
+          ? "max-h-[50vh] overflow-y-auto"
+          : "p-4 rounded-lg border border-border bg-background max-h-[70vh] overflow-y-auto sticky top-28"
+      }
+    >
+      {!isMobile && (
+        <h2 className="font-mono text-xs text-accent mb-3">On this page</h2>
+      )}
       <ul className="space-y-1 text-sm">
         {h2sWithH3s.map(({ h2, h3s }) => (
           <li key={h2.id}>
@@ -125,24 +166,51 @@ function TableOfContents({ headings, isMobile }: { headings: TocHeading[], isMob
 
 export default async function BlogPostPage({ params }: { params: Params }) {
   const { slug } = await params;
+  const wordpressPost = await getWordPressBlogPost(slug).catch(() => null);
   let post;
-  try {
-    post = getBlogPost(slug);
-  } catch {
-    notFound();
+  if (wordpressPost) {
+    const preparedContent = prepareWordPressContent(wordpressPost.contentHtml);
+    post = {
+      ...wordpressPost,
+      content: preparedContent.html,
+      contentFormat: "html" as const,
+      headings: preparedContent.headings,
+    };
+  } else {
+    try {
+      const localPost = getLocalBlogPost(slug);
+      post = {
+        title: localPost.frontmatter.title,
+        slug: localPost.frontmatter.slug,
+        description: localPost.frontmatter.description,
+        publishedAt: localPost.frontmatter.date,
+        modifiedAt: localPost.frontmatter.date,
+        tags: localPost.frontmatter.tags,
+        cover: localPost.frontmatter.cover,
+        coverAlt: localPost.frontmatter.title,
+        content: localPost.content,
+        contentFormat: "markdown" as const,
+        headings: extractHeadings(localPost.content),
+      };
+    } catch {
+      notFound();
+    }
   }
-  const { frontmatter, content } = post;
-  const headings = extractHeadings(content);
+  const headings = post.headings;
+  const articleImage = post.cover
+    ? post.cover.startsWith("http")
+      ? post.cover
+      : absoluteUrl(post.cover)
+    : undefined;
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
-    headline: frontmatter.title,
-    description: frontmatter.description,
-    datePublished: new Date(frontmatter.date).toISOString(),
-    mainEntityOfPage: absoluteUrl(`/blog/${frontmatter.slug}`),
-    ...(frontmatter.cover
-      ? { image: absoluteUrl(frontmatter.cover) }
-      : {}),
+    headline: post.title,
+    description: post.description,
+    datePublished: new Date(post.publishedAt).toISOString(),
+    dateModified: new Date(post.modifiedAt).toISOString(),
+    mainEntityOfPage: absoluteUrl(`/blog/${post.slug}`),
+    ...(articleImage ? { image: articleImage } : {}),
     author: {
       "@type": "Person",
       "@id": `${absoluteUrl("/")}#person`,
@@ -163,11 +231,11 @@ export default async function BlogPostPage({ params }: { params: Params }) {
           </Link>
 
           <header className="mb-10">
-            {frontmatter.cover && (
+            {post.cover && (
               <div className="relative w-full aspect-video mb-6 rounded-xl overflow-hidden">
                 <Image
-                  src={frontmatter.cover}
-                  alt={frontmatter.title}
+                  src={post.cover}
+                  alt={post.coverAlt || post.title}
                   fill
                   className="object-cover"
                 />
@@ -175,21 +243,21 @@ export default async function BlogPostPage({ params }: { params: Params }) {
             )}
             <div className="flex items-center justify-between gap-3">
               <time
-                dateTime={frontmatter.date}
+                dateTime={post.publishedAt}
                 className="font-mono text-xs text-muted"
               >
-                {formatDate(frontmatter.date)}
+                {formatDate(post.publishedAt)}
               </time>
-              <CopyLinkButton ariaLabel={`Copy link to ${frontmatter.title}`} />
+              <CopyLinkButton ariaLabel={`Copy link to ${post.title}`} />
             </div>
             <h1 className="mt-3 text-[1.75rem] font-semibold leading-tight tracking-tight text-foreground sm:text-4xl">
-              {frontmatter.title}
+              {post.title}
             </h1>
             <p className="mt-3 text-base leading-relaxed text-muted sm:text-lg">
-              {frontmatter.description}
+              {post.description}
             </p>
             <ul className="mt-5 flex flex-wrap gap-x-2 gap-y-1 font-mono text-[11px] text-muted">
-              {frontmatter.tags.map((t) => (
+              {post.tags.map((t) => (
                 <li
                   key={t}
                   className="before:mr-2 before:text-border before:content-['/'] first:before:hidden"
@@ -206,13 +274,32 @@ export default async function BlogPostPage({ params }: { params: Params }) {
               <details className="group rounded-xl border border-border bg-background/50 overflow-hidden [&_summary::-webkit-details-marker]:hidden">
                 <summary className="flex cursor-pointer items-center justify-between px-4 py-3 font-mono text-sm text-foreground hover:bg-foreground/5 transition-colors">
                   <div className="flex items-center gap-2 text-accent">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="4" y1="6" x2="20" y2="6" />
+                      <line x1="4" y1="12" x2="20" y2="12" />
+                      <line x1="4" y1="18" x2="20" y2="18" />
                     </svg>
                     <span>Table of Contents</span>
                   </div>
-                  <svg className="w-4 h-4 text-muted transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="6 9 12 15 18 9"/>
+                  <svg
+                    className="w-4 h-4 text-muted transition-transform group-open:rotate-180"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
                   </svg>
                 </summary>
                 <div className="border-t border-border px-4 py-3">
@@ -223,9 +310,12 @@ export default async function BlogPostPage({ params }: { params: Params }) {
           )}
 
           <article>
-            <MDXContent source={content} />
+            {post.contentFormat === "html" ? (
+              <WordPressContent html={post.content} />
+            ) : (
+              <MDXContent source={post.content} />
+            )}
           </article>
-
         </div>
 
         <aside className="hidden lg:block relative">

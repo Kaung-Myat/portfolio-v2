@@ -4,7 +4,11 @@ import FeaturedProjects from "./components/FeaturedProjects";
 import Hero from "./components/Hero";
 import SiteFooter from "./components/SiteFooter";
 import { getGitHubStats } from "@/src/lib/github";
-import { getBlogPosts, getProjects } from "@/src/lib/content";
+import {
+  getBlogPosts as getLocalBlogPosts,
+  getProjects,
+} from "@/src/lib/content";
+import { getAllBlogPosts } from "@/src/lib/wordpress";
 import { createPageMetadata, siteDescription, siteName } from "@/src/lib/site";
 
 export const metadata = createPageMetadata({
@@ -26,7 +30,12 @@ export default async function Home() {
   const packageCount = projects.filter(
     ({ frontmatter }) => frontmatter.pubdev,
   ).length;
-  const articleCount = getBlogPosts().length;
+  const wordpressPosts = await getAllBlogPosts().catch(() => []);
+  const articleSlugs = new Set([
+    ...getLocalBlogPosts().map(({ frontmatter }) => frontmatter.slug),
+    ...wordpressPosts.map((post) => post.slug),
+  ]);
+  const articleCount = articleSlugs.size;
 
   return (
     <main className="flex flex-1 w-full flex-col">
